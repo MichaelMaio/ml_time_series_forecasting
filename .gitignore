@@ -16,6 +16,8 @@ models/
 *.log
 .DS_Store
 Thumbs.db
+
+# Artifacts
 model_features.json
 model_features.pkl
 predicted_kwh_trend.png
