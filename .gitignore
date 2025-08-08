@@ -24,3 +24,5 @@ predicted_kwh_trend.png
 predicted_kwh.csv
 transformer_load_model.json
 transformer_load_model.pkl
+transformer_load_model_prophet.pkl
+transformer_load_model.txt
