@@ -1,12 +1,28 @@
 import json
 import mlflow
 from mlflow.models.signature import infer_signature
+import mlflow.pyfunc
 import pandas as pd
 import pickle
 from sklearn.metrics import root_mean_squared_error
+import os
 from prophet import Prophet
-import mlflow.pyfunc
 from prophet_wrapper import ProphetWrapper  # ✅ Custom wrapper
+
+# Detect environment
+is_azure = "AZUREML_EXPERIMENT_ID" in os.environ or "AZUREML_RUN_ID" in os.environ
+experiment_name = "prophet_forecasting_pipeline"
+
+if not is_azure:
+    # Local run: set tracking URI and ensure experiment exists
+    mlflow.set_tracking_uri(os.getenv("MLFLOW_TRACKING_URI", "file:mlruns"))
+    client = mlflow.tracking.MlflowClient()
+    existing = client.get_experiment_by_name(experiment_name)
+    if existing is None:
+        client.create_experiment(experiment_name)
+    mlflow.set_experiment(experiment_name)
+
+print("Tracking URI:", mlflow.get_tracking_uri())
 
 # Disable autologging (Prophet isn't natively supported)
 mlflow.autolog(disable=True)
@@ -75,9 +91,9 @@ with mlflow.start_run(run_name="prophet_load_forecast"):
 
     # ✅ Log and register the model using the wrapper
     mlflow.pyfunc.log_model(
-        artifact_path="transformer_load_model",
+        artifact_path="model",
         python_model=ProphetWrapper(),
-        artifacts={"model_path": model_path},
+        artifacts={"model": model_path},
         registered_model_name="transformer_load_forecast",
         signature=signature
     )
