@@ -1,6 +1,7 @@
 import os
 import mlflow
 from mlflow.tracking import MlflowClient
+import yaml
 
 # Detect environment
 is_azure = "AZUREML_EXPERIMENT_ID" in os.environ or "AZUREML_RUN_ID" in os.environ
@@ -9,7 +10,10 @@ alias_name = "production"
 
 # Set tracking URI only for local
 if not is_azure:
-    mlflow.set_tracking_uri("file:mlruns")
+    mlflow.set_tracking_uri(os.getenv("MLFLOW_TRACKING_URI", "file:/mlflow/mlruns"))
+
+print("Tracking URI:", mlflow.get_tracking_uri())
+print("Promoting model:", model_name)
 
 client = MlflowClient()
 
@@ -54,11 +58,26 @@ else:
 
     latest_version_obj = sorted(unaliased, key=lambda v: v.creation_timestamp, reverse=True)[0]
 
-    # Validate artifact path exists
-    run_id = latest_version_obj.run_id
-    artifact_path = os.path.join("mlruns", run_id[:1], run_id, "artifacts", "model")
-    if not os.path.exists(artifact_path):
-        raise Exception(f"Artifact path does not exist: {artifact_path}")
+    # ✅ Validate registry snapshot path using meta.yaml
+    version = latest_version_obj.version
+    meta_path = os.path.join("mlruns", "models", model_name, f"version-{version}", "meta.yaml")
+
+    if not os.path.exists(meta_path):
+        raise Exception(f"meta.yaml not found for model version {version}")
+
+    with open(meta_path, "r") as f:
+        meta = yaml.safe_load(f)
+
+    storage_uri = meta.get("storage_location", "")
+    if not storage_uri.startswith("file:"):
+        raise Exception(f"Unexpected storage_location format: {storage_uri}")
+
+    registry_path = os.path.normpath(storage_uri.replace("file:", ""))
+
+    print(f"🔍 Registry snapshot path: {registry_path}")
+
+    if not os.path.exists(registry_path):
+        raise Exception(f"Registry snapshot path does not exist: {registry_path}")
 
     client.set_registered_model_alias(
         name=model_name,

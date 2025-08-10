@@ -13,22 +13,24 @@ from prophet_wrapper import ProphetWrapper  # ✅ Custom wrapper
 is_azure = "AZUREML_EXPERIMENT_ID" in os.environ or "AZUREML_RUN_ID" in os.environ
 experiment_name = "prophet_forecasting_pipeline"
 
-if not is_azure:
-    # Local run: set tracking URI and ensure experiment exists
-    mlflow.set_tracking_uri(os.getenv("MLFLOW_TRACKING_URI", "file:mlruns"))
-    client = mlflow.tracking.MlflowClient()
-    existing = client.get_experiment_by_name(experiment_name)
-    if existing is None:
-        client.create_experiment(experiment_name)
-    mlflow.set_experiment(experiment_name)
+# ✅ Set tracking URI for Docker container
+mlflow.set_tracking_uri(os.getenv("MLFLOW_TRACKING_URI", "file:/mlflow/mlruns"))
+
+# Ensure experiment exists
+client = mlflow.tracking.MlflowClient()
+existing = client.get_experiment_by_name(experiment_name)
+if existing is None:
+    client.create_experiment(experiment_name)
+mlflow.set_experiment(experiment_name)
 
 print("Tracking URI:", mlflow.get_tracking_uri())
 
 # Disable autologging (Prophet isn't natively supported)
 mlflow.autolog(disable=True)
 
-# Load data
-df = pd.read_csv("data/peak_load.csv", parse_dates=["timestamp"])
+# ✅ Load data from container-accessible path
+data_path = os.getenv("DATA_PATH", "data/peak_load.csv")
+df = pd.read_csv(data_path, parse_dates=["timestamp"])
 
 # Feature engineering
 df["hour"] = df["hour"].astype(int)
@@ -66,7 +68,7 @@ with mlflow.start_run(run_name="prophet_load_forecast"):
     rmse = root_mean_squared_error(y_true, y_pred)
     mlflow.log_metric("rmse", rmse)
 
-    # Save model locally
+    # Save model locally inside container
     model_path = "transformer_load_model_prophet.pkl"
     with open(model_path, "wb") as f:
         pickle.dump(model, f)
