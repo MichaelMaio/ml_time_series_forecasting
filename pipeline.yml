@@ -1,0 +1,18 @@
+$schema: https://azuremlschemas.azureedge.net/latest/pipelineJob.schema.json
+type: pipeline
+description: ML pipeline with training, promotion, and prediction
+compute: azureml:transformer-load-compute
+jobs:
+  train_job:
+    type: command
+    component: file:./train.yml
+
+  promote_job:
+    type: command
+    component: file:./promote.yml
+    depends_on: [train_job]
+
+  predict_job:
+    type: command
+    component: file:./predict.yml
+    depends_on: [promote_job]

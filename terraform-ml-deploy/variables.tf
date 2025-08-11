@@ -5,7 +5,7 @@ variable "location" {
 
 variable "resource_group_name" {
   description = "Name of the resource group"
-  default     = "ml-rg"
+  default     = "transformer-load-rg"
 }
 
 variable "workspace_name" {
@@ -13,22 +13,22 @@ variable "workspace_name" {
   default     = "transformer-load-ws"
 }
 
-variable "app_service_plan_name" {
-  description = "Name of the App Service Plan"
-  default     = "ml-app-plan"
-}
-
-variable "app_service_name" {
-  description = "Name of the App Service"
-  default     = "ml-app-service"
-}
-
 variable "acr_name" {
   description = "Name of the Azure Container Registry"
-  default     = "mlacrregistry"
+  default     = "transformerloadacr"
 }
 
-variable "docker_image_tag" {
-  description = "Tag of the Docker image in ACR"
-  default     = "latest"
+variable "storage_account_name" {
+  description = "Name of the Azure Storage Account"
+  default     = "transformerloadstorage"
+}
+
+variable "compute_name" {
+  description = "Name of the Azure ML compute cluster"
+  default     = "transformer-load-compute"
+}
+
+variable "identity_name" {
+  description = "User-assigned managed identity name"
+  default     = "transformer-load-identity"
 }

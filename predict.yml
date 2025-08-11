@@ -1,0 +1,12 @@
+$schema: https://azuremlschemas.azureedge.net/latest/commandComponent.schema.json
+name: predict_model
+display_name: Predict Model
+version: 1
+type: command
+inputs: {}
+outputs: {}
+environment:
+  image: transformer-load-acr.azurecr.io/transformer-load-image:latest
+code: .
+command: >-
+  python inference.py

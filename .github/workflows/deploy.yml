@@ -8,52 +8,61 @@ jobs:
   train-deploy:
     runs-on: ubuntu-latest
 
+    permissions:
+      id-token: write
+      contents: read
+
     env:
-      MLFLOW_TRACKING_URI: ${{ secrets.MLFLOW_TRACKING_URI }}
-      AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-      ACR_NAME: mlacrregistry
-      IMAGE_NAME: transformer-api
+      ACR_NAME: transformer-load-acr
+      IMAGE_NAME: transformer-load-image
       IMAGE_TAG: latest
+      FULL_IMAGE: ${{ env.ACR_NAME }}.azurecr.io/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
+      RESOURCE_GROUP: transformer-load-rg
+      WORKSPACE_NAME: transformer-load-ws
 
     steps:
       - name: Checkout repo
         uses: actions/checkout@v3
 
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: "3.10"
-
-      - name: Install dependencies
-        run: pip install -r requirements.txt
-
-      - name: Train model
-        run: python train.py
-
-      - name: Promote model to Production
-        run: python promote.py
-
-      - name: Log in to Azure
+      - name: Azure Login
         uses: azure/login@v1
         with:
-          creds: ${{ secrets.AZURE_CREDENTIALS }}
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
       - name: Log in to ACR
         run: az acr login --name $ACR_NAME
 
       - name: Build Docker image
-        run: docker build -t $IMAGE_NAME:$IMAGE_TAG .
-
-      - name: Tag Docker image for ACR
-        run: docker tag $IMAGE_NAME:$IMAGE_TAG $ACR_NAME.azurecr.io/$IMAGE_NAME:$IMAGE_TAG
+        run: docker build -t $FULL_IMAGE .
 
       - name: Push Docker image to ACR
-        run: docker push $ACR_NAME.azurecr.io/$IMAGE_NAME:$IMAGE_TAG
+        run: docker push $FULL_IMAGE
 
       - name: Terraform Init
         run: terraform init
         working-directory: ./terraform-ml-deploy
 
+      - name: Terraform Validate
+        run: terraform validate
+        working-directory: ./terraform-ml-deploy
+
+      - name: Terraform Plan
+        run: terraform plan
+        working-directory: ./terraform-ml-deploy
+
       - name: Terraform Apply
         run: terraform apply -auto-approve
         working-directory: ./terraform-ml-deploy
+
+      - name: Wait for role assignment propagation
+        run: sleep 60
+
+      - name: Set Azure ML workspace
+        run: |
+          az configure --defaults group=${{ env.RESOURCE_GROUP }} workspace=${{ env.WORKSPACE_NAME }}
+
+      - name: Submit Azure ML pipeline job
+        run: |
+          az ml job create --file pipeline.yml
