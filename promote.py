@@ -60,7 +60,10 @@ else:
 
     # ✅ Validate registry snapshot path using meta.yaml
     version = latest_version_obj.version
-    meta_path = os.path.join("mlruns", "models", model_name, f"version-{version}", "meta.yaml")
+    tracking_root = mlflow.get_tracking_uri().replace("file:", "")
+    meta_path = os.path.join(tracking_root, "models", model_name, f"version-{version}", "meta.yaml")
+
+    print("Checking meta.yaml path:", meta_path)
 
     if not os.path.exists(meta_path):
         raise Exception(f"meta.yaml not found for model version {version}")

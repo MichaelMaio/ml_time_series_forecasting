@@ -30,11 +30,9 @@ services:
       - MLFLOW_TRACKING_URI=file:/mlflow/mlruns
       - MODEL_PATH=models:/transformer_load_forecast@production
     command: >
-      gunicorn inference:app
-      --bind 0.0.0.0:5000
-      --workers 2
+      gunicorn inference:app --bind 0.0.0.0:5000 --workers 2
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      test: [ "CMD", "curl", "-f", "http://localhost:5000/health" ]
       interval: 10s
       timeout: 5s
       retries: 5
