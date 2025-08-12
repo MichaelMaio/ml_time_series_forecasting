@@ -1,3 +1,6 @@
+# Reference the current Azure client configuration
+data "azurerm_client_config" "current" {}
+
 # Reference existing resource group instead of creating it
 data "azurerm_resource_group" "ml_rg" {
   name = var.resource_group_name
@@ -21,24 +24,65 @@ data "azurerm_storage_account" "ml_storage" {
   resource_group_name = data.azurerm_resource_group.ml_rg.name
 }
 
+resource "azurerm_key_vault" "ml_kv" {
+  name                       = var.keyvault_name
+  location                   = data.azurerm_resource_group.ml_rg.location
+  resource_group_name        = data.azurerm_resource_group.ml_rg.name
+  tenant_id                  = data.azurerm_client_config.current.tenant_id
+  sku_name                   = "standard"
+  soft_delete_retention_days = 0
+  purge_protection_enabled   = true
+}
+
+resource "azurerm_key_vault_access_policy" "ml_policy" {
+  key_vault_id = azurerm_key_vault.ml_kv.id
+  tenant_id    = data.azurerm_client_config.current.tenant_id
+  object_id    = data.azurerm_user_assigned_identity.ml_identity.principal_id
+
+  secret_permissions = ["Get", "List"]
+}
+
+resource "azurerm_log_analytics_workspace" "ml_la" {
+  name                = var.log_workspace_name
+  location            = azurerm_resource_group.ml_rg.location
+  resource_group_name = azurerm_resource_group.ml_rg.name
+  sku                 = "PerGB2018"
+  retention_in_days   = 30
+}
+
+resource "azurerm_application_insights" "ml_ai" {
+  name                = var.appinsights_name
+  location            = data.azurerm_resource_group.ml_rg.location
+  resource_group_name = data.azurerm_resource_group.ml_rg.name
+  application_type    = "web"
+  workspace_id        = azurerm_log_analytics_workspace.ml_la.id
+}
+
 # Create ML workspace using existing ACR and storage
 resource "azurerm_machine_learning_workspace" "ml_ws" {
-  name                   = var.workspace_name
+  name                   = var.ml_workspace_name
   location               = var.location
   resource_group_name    = data.azurerm_resource_group.ml_rg.name
   container_registry_id  = data.azurerm_container_registry.acr.id
   storage_account_id     = data.azurerm_storage_account.ml_storage.id
+  key_vault_id           = azurerm_key_vault.ml_kv.id
+  application_insights_id = azurerm_application_insights.ml_ai.id
 
   identity {
     type         = "UserAssigned"
     identity_ids = [data.azurerm_user_assigned_identity.ml_identity.id]
   }
+
+  depends_on = [
+  azurerm_key_vault.ml_kv,
+  azurerm_application_insights.ml_ai,
+  azurerm_log_analytics_workspace.ml_la
+  ]
 }
 
 # Assign Machine Learning Compute Operator access to the ML workspace
 resource "azurerm_role_assignment" "ml_workspace_access" {
   name                 = "77B92631-C0D9-4B13-B92A-F6FF4A8055F2"
-
   principal_id         = data.azurerm_user_assigned_identity.ml_identity.principal_id
   role_definition_name = "Machine Learning Compute Operator"
   scope                = azurerm_machine_learning_workspace.ml_ws.id
@@ -47,11 +91,11 @@ resource "azurerm_role_assignment" "ml_workspace_access" {
 
 # Create compute cluster
 resource "azurerm_machine_learning_compute_cluster" "cpu_cluster" {
-  name                = var.compute_name
-  location            = var.location
-  resource_group_name = data.azurerm_resource_group.ml_rg.name
-  workspace_name      = azurerm_machine_learning_workspace.ml_ws.name
-  vm_size             = "Standard_B2ms"
+  name                          = var.compute_name
+  location                      = var.location
+  machine_learning_workspace_id = azurerm_machine_learning_workspace.ml_ws.id
+  vm_size                       = "Standard_B1ms"
+  vm_priority                   = "LowPriority"
 
   identity {
     type         = "UserAssigned"
@@ -61,7 +105,7 @@ resource "azurerm_machine_learning_compute_cluster" "cpu_cluster" {
   scale_settings {
     max_node_count                   = 1
     min_node_count                   = 0
-    node_idle_time_before_scale_down = "PT60S"
+    scale_down_nodes_after_idle_duration = "PT60S"
   }
 
   depends_on = [azurerm_role_assignment.ml_workspace_access]
