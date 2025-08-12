@@ -1,0 +1,12 @@
+$schema: https://azuremlschemas.azureedge.net/latest/commandComponent.schema.json
+name: train_model
+display_name: Train Model
+version: 1
+type: command
+inputs: {}
+outputs: {}
+environment:
+  image: transformer-load-acr.azurecr.io/transformer-load-image:latest
+code: .
+command: >-
+  python train.py

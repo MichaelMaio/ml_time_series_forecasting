@@ -1,12 +1,10 @@
-import pandas as pd
 import pickle
-from prophet import Prophet
 import mlflow.pyfunc
 
 class ProphetWrapper(mlflow.pyfunc.PythonModel):
     def load_context(self, context):
         # Load the pickled Prophet model
-        with open(context.artifacts["model_path"], "rb") as f:
+        with open(context.artifacts["model"], "rb") as f:
             self.model = pickle.load(f)
 
     def predict(self, context, model_input):

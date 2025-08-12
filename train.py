@@ -1,18 +1,60 @@
 import json
 import mlflow
 from mlflow.models.signature import infer_signature
+import mlflow.pyfunc
 import pandas as pd
 import pickle
 from sklearn.metrics import root_mean_squared_error
+import os
 from prophet import Prophet
-import mlflow.pyfunc
 from prophet_wrapper import ProphetWrapper  # ✅ Custom wrapper
+from azure.identity import DefaultAzureCredential
+from azure.storage.blob import BlobClient
+import tempfile
+
+print("📂 Current working directory:", os.getcwd())
+
+# Detect environment
+is_azure = "AZUREML_EXPERIMENT_ID" in os.environ or "AZUREML_RUN_ID" in os.environ
+
+print("Running in Azure ML:", is_azure)
+
+experiment_name = "prophet_forecasting_pipeline"
+
+# ✅ Set tracking URI for Docker container
+if not is_azure:
+    mlflow.set_tracking_uri(os.getenv("MLFLOW_TRACKING_URI", "file:/mlflow/mlruns"))
+
+print("MLflow Tracking URI:", mlflow.get_tracking_uri())
+
+# Ensure experiment exists
+client = mlflow.tracking.MlflowClient()
+existing = client.get_experiment_by_name(experiment_name)
+
+if existing is None:
+    client.create_experiment(experiment_name)
+
+mlflow.set_experiment(experiment_name)
+
+print("Tracking URI:", mlflow.get_tracking_uri())
 
 # Disable autologging (Prophet isn't natively supported)
 mlflow.autolog(disable=True)
 
-# Load data
-df = pd.read_csv("data/peak_load.csv", parse_dates=["timestamp"])
+# Download blob from storage if running in Azure or from the data folder if training locally.
+if is_azure:
+    blob_uri = "https://transformerloadstorage.blob.core.windows.net/training-data/peak_load.csv"
+    print(f"📦 Loading data from blob: {blob_uri}")
+    credential = DefaultAzureCredential()    
+    blob_client = BlobClient.from_blob_url(blob_uri, credential=credential)
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".csv") as tmp:
+        blob_client.download_blob().readinto(tmp)
+        data_path = tmp.name
+else:
+    print("📁 Loading data from local path")
+    data_path = "data/peak_load.csv"
+
+df = pd.read_csv(data_path, parse_dates=["timestamp"])
 
 # Feature engineering
 df["hour"] = df["hour"].astype(int)
@@ -50,7 +92,7 @@ with mlflow.start_run(run_name="prophet_load_forecast"):
     rmse = root_mean_squared_error(y_true, y_pred)
     mlflow.log_metric("rmse", rmse)
 
-    # Save model locally
+    # Save model locally inside container
     model_path = "transformer_load_model_prophet.pkl"
     with open(model_path, "wb") as f:
         pickle.dump(model, f)
@@ -75,9 +117,9 @@ with mlflow.start_run(run_name="prophet_load_forecast"):
 
     # ✅ Log and register the model using the wrapper
     mlflow.pyfunc.log_model(
-        artifact_path="transformer_load_model",
+        artifact_path="model",
         python_model=ProphetWrapper(),
-        artifacts={"model_path": model_path},
+        artifacts={"model": model_path},
         registered_model_name="transformer_load_forecast",
         signature=signature
     )

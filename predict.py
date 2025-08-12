@@ -3,6 +3,15 @@ import matplotlib.pyplot as plt
 import mlflow
 from mlflow import MlflowClient
 import pandas as pd
+from azure.identity import DefaultAzureCredential
+from azure.storage.blob import BlobClient
+
+print("📂 Current working directory:", os.getcwd())
+
+# Detect environment
+is_azure = "AZUREML_EXPERIMENT_ID" in os.environ or "AZUREML_RUN_ID" in os.environ
+
+print("Running in Azure ML:", is_azure)
 
 # Load model from MLflow
 model = mlflow.pyfunc.load_model("models:/transformer_load_forecast@production")
@@ -48,4 +57,33 @@ plt.title("Hourly Energy Forecast (2025–2030)")
 plt.grid(True)
 plt.tight_layout()
 plt.savefig("predicted_kwh_trend.png")
-plt.show()
+
+if is_azure:
+    # Define blob paths
+    storage_account_url = "https://transformerloadstorage.blob.core.windows.net"
+    container_name = "predictions"
+    csv_blob_name = "predicted_kwh.csv"
+    plot_blob_name = "predicted_kwh_trend.png"
+    overload_blob_name = "overload_events.csv"
+
+    # Authenticate
+    credential = DefaultAzureCredential()
+
+    def upload_to_blob(blob_name, local_path):
+        blob = BlobClient(account_url=storage_account_url, container_name=container_name, blob_name=blob_name, credential=credential)
+        with open(local_path, "rb") as f:
+            try:
+                blob.upload_blob(f, overwrite=True)
+                print(f"📤 Uploaded {blob_name} to {blob.url}.")
+            except Exception as e:
+                print(f"❌ Failed to upload {blob_name} to {blob.url}: {e}")
+
+    upload_to_blob(csv_blob_name, csv_blob_name)
+    upload_to_blob(plot_blob_name, plot_blob_name)
+
+    if not overload.empty:
+        overload.to_csv(overload_blob_name, index=False)
+        upload_to_blob(overload_blob_name, overload_blob_name)
+
+    print("✅ Forecast results uploaded to blob storage.")
+
