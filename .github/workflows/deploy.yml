@@ -9,6 +9,12 @@ on:
   workflow_dispatch:
 
 jobs:
+  skip:
+    if: github.ref != 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Skipping workflow because branch is not main"
+
   train-deploy:
     if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || 
         (github.event_name == 'pull_request' && github.event.pull_request.merged == true && github.base_ref == 'main')
@@ -47,6 +53,11 @@ jobs:
 
       - name: Push Docker image to ACR
         run: docker push $FULL_IMAGE
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: 1.6.2
 
       - name: Terraform Init
         run: terraform init
