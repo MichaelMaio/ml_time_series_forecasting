@@ -10,7 +10,5 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY train.py .
 COPY promote.py .
 COPY inference.py .
+COPY predict.py .
 COPY prophet_wrapper.py .
-
-# Default command (can be overridden by docker-compose)
-CMD ["python", "train.py"]
