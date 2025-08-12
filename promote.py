@@ -3,8 +3,13 @@ import mlflow
 from mlflow.tracking import MlflowClient
 import yaml
 
+print("📂 Current working directory:", os.getcwd())
+
 # Detect environment
 is_azure = "AZUREML_EXPERIMENT_ID" in os.environ or "AZUREML_RUN_ID" in os.environ
+
+print("Running in Azure ML:", is_azure)
+
 model_name = "transformer_load_forecast"
 alias_name = "production"
 

@@ -8,19 +8,32 @@ from sklearn.metrics import root_mean_squared_error
 import os
 from prophet import Prophet
 from prophet_wrapper import ProphetWrapper  # ✅ Custom wrapper
+from azure.identity import DefaultAzureCredential
+from azure.storage.blob import BlobClient
+import tempfile
+
+print("📂 Current working directory:", os.getcwd())
 
 # Detect environment
 is_azure = "AZUREML_EXPERIMENT_ID" in os.environ or "AZUREML_RUN_ID" in os.environ
+
+print("Running in Azure ML:", is_azure)
+
 experiment_name = "prophet_forecasting_pipeline"
 
 # ✅ Set tracking URI for Docker container
-mlflow.set_tracking_uri(os.getenv("MLFLOW_TRACKING_URI", "file:/mlflow/mlruns"))
+if not is_azure:
+    mlflow.set_tracking_uri(os.getenv("MLFLOW_TRACKING_URI", "file:/mlflow/mlruns"))
+
+print("MLflow Tracking URI:", mlflow.get_tracking_uri())
 
 # Ensure experiment exists
 client = mlflow.tracking.MlflowClient()
 existing = client.get_experiment_by_name(experiment_name)
+
 if existing is None:
     client.create_experiment(experiment_name)
+
 mlflow.set_experiment(experiment_name)
 
 print("Tracking URI:", mlflow.get_tracking_uri())
@@ -28,8 +41,19 @@ print("Tracking URI:", mlflow.get_tracking_uri())
 # Disable autologging (Prophet isn't natively supported)
 mlflow.autolog(disable=True)
 
-# ✅ Load data from container-accessible path
-data_path = os.getenv("DATA_PATH", "data/peak_load.csv")
+# Download blob from storage if running in Azure or from the data folder if training locally.
+if is_azure:
+    blob_uri = "https://transformerloadstorage.blob.core.windows.net/training-data/peak_load.csv"
+    print(f"📦 Loading data from blob: {blob_uri}")
+    credential = DefaultAzureCredential()    
+    blob_client = BlobClient.from_blob_url(blob_uri, credential=credential)
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".csv") as tmp:
+        blob_client.download_blob().readinto(tmp)
+        data_path = tmp.name
+else:
+    print("📁 Loading data from local path")
+    data_path = "data/peak_load.csv"
+
 df = pd.read_csv(data_path, parse_dates=["timestamp"])
 
 # Feature engineering

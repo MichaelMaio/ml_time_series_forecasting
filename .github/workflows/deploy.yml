@@ -44,6 +44,10 @@ jobs:
         run: terraform init
         working-directory: ./terraform-ml-deploy
 
+      - name: Terraform Format Check
+        run: terraform fmt -check -recursive
+        working-directory: ./terraform-ml-deploy
+
       - name: Terraform Validate
         run: terraform validate
         working-directory: ./terraform-ml-deploy
@@ -59,10 +63,11 @@ jobs:
       - name: Wait for role assignment propagation
         run: sleep 60
 
-      - name: Set Azure ML workspace
-        run: |
-          az configure --defaults group=${{ env.RESOURCE_GROUP }} workspace=${{ env.WORKSPACE_NAME }}
+      - name: Confirm Azure ML workspace
+        run: az ml workspace show --name ${{ env.WORKSPACE_NAME }} --resource-group ${{ env.RESOURCE_GROUP }}
 
       - name: Submit Azure ML pipeline job
         run: |
-          az ml job create --file pipeline.yml
+          az ml job create --file pipeline.yml \
+            --resource-group ${{ env.RESOURCE_GROUP }} \
+            --workspace-name ${{ env.WORKSPACE_NAME }}
