@@ -39,7 +39,16 @@ resource "azurerm_key_vault_access_policy" "ml_policy" {
   tenant_id    = data.azurerm_client_config.current.tenant_id
   object_id    = data.azurerm_user_assigned_identity.ml_identity.principal_id
 
-  secret_permissions = ["Get", "List"]
+  secret_permissions = ["Get", "Set", "List", "Delete"]
+}
+
+resource "azurerm_role_assignment" "kv_ai_admin" {
+  name                 = "AA923141-B110-4330-AC52-40BD1C01AC8B"
+  principal_id         = data.azurerm_user_assigned_identity.ml_identity.principal_id
+  role_definition_name = "Azure AI Administrator"
+  scope                = azurerm_key_vault.ml_kv.id
+
+  depends_on = [azurerm_key_vault.ml_kv]
 }
 
 resource "azurerm_log_analytics_workspace" "ml_la" {
@@ -58,6 +67,15 @@ resource "azurerm_application_insights" "ml_ai" {
   workspace_id        = azurerm_log_analytics_workspace.ml_la.id
 }
 
+resource "azurerm_role_assignment" "appinsights_ai_admin" {
+  name                 = "504D45D3-161F-4E17-9DB6-A5F8E04B4076"
+  principal_id         = data.azurerm_user_assigned_identity.ml_identity.principal_id
+  role_definition_name = "Azure AI Administrator"
+  scope                = azurerm_application_insights.ml_ai.id
+
+  depends_on = [azurerm_application_insights.ml_ai]
+}
+
 # Create ML workspace using existing ACR and storage
 resource "azurerm_machine_learning_workspace" "ml_ws" {
   name                    = var.ml_workspace_name
@@ -74,6 +92,8 @@ resource "azurerm_machine_learning_workspace" "ml_ws" {
   }
 
   primary_user_assigned_identity = data.azurerm_user_assigned_identity.ml_identity.id
+
+  public_network_access_enabled = true
 
   depends_on = [
     azurerm_key_vault.ml_kv,
@@ -100,6 +120,15 @@ resource "azurerm_role_assignment" "ml_data_scientist" {
   depends_on           = [azurerm_machine_learning_workspace.ml_ws]
 }
 
+# Assign Azure AI Administrator access to the ML workspace
+resource "azurerm_role_assignment" "ml_ai_administrator" {
+  name                 = "13212DA6-A919-440C-BCE9-1DB274F953CB"
+  principal_id         = data.azurerm_user_assigned_identity.ml_identity.principal_id
+  role_definition_name = "Azure AI Administrator"
+  scope                = azurerm_machine_learning_workspace.ml_ws.id
+  depends_on           = [azurerm_machine_learning_workspace.ml_ws]
+}
+
 # Create compute cluster
 resource "azurerm_machine_learning_compute_cluster" "cpu_cluster" {
   name                          = var.compute_name
@@ -121,6 +150,7 @@ resource "azurerm_machine_learning_compute_cluster" "cpu_cluster" {
 
   depends_on = [
     azurerm_role_assignment.ml_data_scientist,
-    azurerm_role_assignment.ml_compute_operator
+    azurerm_role_assignment.ml_compute_operator,
+    azurerm_role_assignment.ml_ai_administrator
   ]
 }
