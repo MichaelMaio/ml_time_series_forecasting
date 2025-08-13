@@ -73,6 +73,8 @@ resource "azurerm_machine_learning_workspace" "ml_ws" {
     identity_ids = [data.azurerm_user_assigned_identity.ml_identity.id]
   }
 
+  primary_user_assigned_identity = data.azurerm_user_assigned_identity.ml_identity.id
+
   depends_on = [
     azurerm_key_vault.ml_kv,
     azurerm_application_insights.ml_ai,
