@@ -9,15 +9,12 @@ on:
   workflow_dispatch:
 
 jobs:
-  skip:
-    if: github.ref != 'refs/heads/main'
-    runs-on: ubuntu-latest
-    steps:
-      - run: echo "Skipping workflow because branch is not main"
 
   train-deploy:
-    if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || 
-        (github.event_name == 'pull_request' && github.event.pull_request.merged == true && github.base_ref == 'main')
+    if: (github.event_name == 'push' && github.ref_name == 'main') || 
+        (github.event_name == 'pull_request' && github.event.pull_request.merged == true && github.base_ref == 'main') ||
+        (github.event_name == 'workflow_dispatch' && github.ref_name == 'main')
+    
     runs-on: ubuntu-latest
 
     permissions:
