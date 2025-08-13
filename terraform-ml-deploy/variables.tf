@@ -15,12 +15,12 @@ variable "identity_name" {
 
 variable "keyvault_name" {
   description = "Name of the key vault"
-  default     = "transformer-load-kv"
+  default     = "transformer-load-kv2"
 }
 
 variable "log_workspace_name" {
   description = "Name of the Log Analytics workspace"
-  default     = "transformer-load-loganalytics"
+  default     = "transformer-load-loganalytics2"
 }
 
 variable "appinsights_name" {
@@ -30,7 +30,7 @@ variable "appinsights_name" {
 
 variable "ml_workspace_name" {
   description = "Name of the ML workspace"
-  default     = "transformer-load-ws"
+  default     = "transformer-load-ws2"
 }
 
 variable "acr_name" {
