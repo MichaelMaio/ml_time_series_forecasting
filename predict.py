@@ -5,6 +5,7 @@ from mlflow import MlflowClient
 import pandas as pd
 from azure.identity import DefaultAzureCredential
 from azure.storage.blob import BlobClient
+import os
 
 print("📂 Current working directory:", os.getcwd())
 
@@ -39,6 +40,9 @@ df_input["predicted_kwh"] = forecast["yhat"]
 # Save results
 df_input.to_csv("predicted_kwh.csv", index=False)
 
+os.makedirs("outputs", exist_ok=True)
+df_input.to_csv("outputs/predicted_kwh.csv", index=False)
+
 # Check for transformer overload
 transformer_limit = 85.0
 overload = df_input[df_input["predicted_kwh"] > transformer_limit]
@@ -56,7 +60,7 @@ plt.ylabel("Predicted kWh")
 plt.title("Hourly Energy Forecast (2025–2030)")
 plt.grid(True)
 plt.tight_layout()
-plt.savefig("predicted_kwh_trend.png")
+plt.savefig("outputs/predicted_kwh_trend.png")
 
 if is_azure:
     # Define blob paths
@@ -69,21 +73,28 @@ if is_azure:
     # Authenticate
     credential = DefaultAzureCredential()
 
-    def upload_to_blob(blob_name, local_path):
-        blob = BlobClient(account_url=storage_account_url, container_name=container_name, blob_name=blob_name, credential=credential)
-        with open(local_path, "rb") as f:
-            try:
+    def upload_to_blob(blob_name):
+        blob = BlobClient(
+            account_url=storage_account_url,
+            container_name=container_name,
+            blob_name=blob_name,
+            credential=credential
+        )
+
+        local_path = f"outputs/{blob_name}"
+        
+        try:
+            with open(local_path, "rb") as f:
                 blob.upload_blob(f, overwrite=True)
                 print(f"📤 Uploaded {blob_name} to {blob.url}.")
-            except Exception as e:
-                print(f"❌ Failed to upload {blob_name} to {blob.url}: {e}")
+        except Exception as e:
+            print(f"❌ Failed to upload {blob_name} to {blob.url}: {e}")
 
-    upload_to_blob(csv_blob_name, csv_blob_name)
-    upload_to_blob(plot_blob_name, plot_blob_name)
+    upload_to_blob(csv_blob_name)
+    upload_to_blob(plot_blob_name)
 
     if not overload.empty:
-        overload.to_csv(overload_blob_name, index=False)
-        upload_to_blob(overload_blob_name, overload_blob_name)
+        overload.to_csv(f"outputs/{overload_blob_name}", index=False)
+        upload_to_blob(overload_blob_name)
 
     print("✅ Forecast results uploaded to blob storage.")
-
