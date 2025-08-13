@@ -117,5 +117,8 @@ resource "azurerm_machine_learning_compute_cluster" "cpu_cluster" {
     scale_down_nodes_after_idle_duration = "PT60S"
   }
 
-  depends_on = [azurerm_role_assignment.ml_workspace_access]
+  depends_on = [
+    azurerm_role_assignment.ml_data_scientist, 
+    azurerm_role_assignment.ml_compute_operator
+  ]
 }
