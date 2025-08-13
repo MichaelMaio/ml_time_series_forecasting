@@ -26,11 +26,11 @@ data "azurerm_storage_account" "ml_storage" {
 
 resource "azurerm_key_vault" "ml_kv" {
   name                       = var.keyvault_name
-  location                   = data.azurerm_resource_group.ml_rg.location
+  location                   = var.location
   resource_group_name        = data.azurerm_resource_group.ml_rg.name
   tenant_id                  = data.azurerm_client_config.current.tenant_id
   sku_name                   = "standard"
-  soft_delete_retention_days = 0
+  soft_delete_retention_days = 7
   purge_protection_enabled   = true
 }
 
@@ -44,15 +44,15 @@ resource "azurerm_key_vault_access_policy" "ml_policy" {
 
 resource "azurerm_log_analytics_workspace" "ml_la" {
   name                = var.log_workspace_name
-  location            = azurerm_resource_group.ml_rg.location
-  resource_group_name = azurerm_resource_group.ml_rg.name
+  location            = var.location
+  resource_group_name = data.azurerm_resource_group.ml_rg.name
   sku                 = "PerGB2018"
   retention_in_days   = 30
 }
 
 resource "azurerm_application_insights" "ml_ai" {
   name                = var.appinsights_name
-  location            = data.azurerm_resource_group.ml_rg.location
+  location            = var.location
   resource_group_name = data.azurerm_resource_group.ml_rg.name
   application_type    = "web"
   workspace_id        = azurerm_log_analytics_workspace.ml_la.id
