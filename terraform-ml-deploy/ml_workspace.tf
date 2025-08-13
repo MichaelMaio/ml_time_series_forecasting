@@ -60,12 +60,12 @@ resource "azurerm_application_insights" "ml_ai" {
 
 # Create ML workspace using existing ACR and storage
 resource "azurerm_machine_learning_workspace" "ml_ws" {
-  name                   = var.ml_workspace_name
-  location               = var.location
-  resource_group_name    = data.azurerm_resource_group.ml_rg.name
-  container_registry_id  = data.azurerm_container_registry.acr.id
-  storage_account_id     = data.azurerm_storage_account.ml_storage.id
-  key_vault_id           = azurerm_key_vault.ml_kv.id
+  name                    = var.ml_workspace_name
+  location                = var.location
+  resource_group_name     = data.azurerm_resource_group.ml_rg.name
+  container_registry_id   = data.azurerm_container_registry.acr.id
+  storage_account_id      = data.azurerm_storage_account.ml_storage.id
+  key_vault_id            = azurerm_key_vault.ml_kv.id
   application_insights_id = azurerm_application_insights.ml_ai.id
 
   identity {
@@ -74,9 +74,9 @@ resource "azurerm_machine_learning_workspace" "ml_ws" {
   }
 
   depends_on = [
-  azurerm_key_vault.ml_kv,
-  azurerm_application_insights.ml_ai,
-  azurerm_log_analytics_workspace.ml_la
+    azurerm_key_vault.ml_kv,
+    azurerm_application_insights.ml_ai,
+    azurerm_log_analytics_workspace.ml_la
   ]
 }
 
@@ -112,8 +112,8 @@ resource "azurerm_machine_learning_compute_cluster" "cpu_cluster" {
   }
 
   scale_settings {
-    max_node_count                   = 1
-    min_node_count                   = 0
+    max_node_count                       = 1
+    min_node_count                       = 0
     scale_down_nodes_after_idle_duration = "PT60S"
   }
 
