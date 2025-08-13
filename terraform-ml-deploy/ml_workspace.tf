@@ -80,11 +80,20 @@ resource "azurerm_machine_learning_workspace" "ml_ws" {
   ]
 }
 
-# Assign Machine Learning Compute Operator access to the ML workspace
-resource "azurerm_role_assignment" "ml_workspace_access" {
+# Assign AzureML Compute Operator access to the ML workspace
+resource "azurerm_role_assignment" "ml_compute_operator" {
   name                 = "77B92631-C0D9-4B13-B92A-F6FF4A8055F2"
   principal_id         = data.azurerm_user_assigned_identity.ml_identity.principal_id
-  role_definition_name = "Machine Learning Compute Operator"
+  role_definition_name = "AzureML Compute Operator"
+  scope                = azurerm_machine_learning_workspace.ml_ws.id
+  depends_on           = [azurerm_machine_learning_workspace.ml_ws]
+}
+
+# Assign AzureML Data Scientist access to the ML workspace
+resource "azurerm_role_assignment" "ml_data_scientist" {
+  name                 = "FF58279F-C7C8-4861-BE5C-BBC1B89C7137"
+  principal_id         = data.azurerm_user_assigned_identity.ml_identity.principal_id
+  role_definition_name = "AzureML Data Scientist"
   scope                = azurerm_machine_learning_workspace.ml_ws.id
   depends_on           = [azurerm_machine_learning_workspace.ml_ws]
 }
