@@ -118,7 +118,7 @@ resource "azurerm_machine_learning_compute_cluster" "cpu_cluster" {
   }
 
   depends_on = [
-    azurerm_role_assignment.ml_data_scientist, 
+    azurerm_role_assignment.ml_data_scientist,
     azurerm_role_assignment.ml_compute_operator
   ]
 }
