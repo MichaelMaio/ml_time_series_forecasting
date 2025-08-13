@@ -26,7 +26,7 @@ jobs:
       IMAGE_NAME: transformer-load-image
       IMAGE_TAG: latest
       RESOURCE_GROUP: transformer-load-rg
-      WORKSPACE_NAME: transformer-load-ws
+      WORKSPACE_NAME: transformer-load-ws2
       
       ARM_USE_OIDC: true
       ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
