@@ -105,7 +105,7 @@ resource "azurerm_machine_learning_compute_cluster" "cpu_cluster" {
   name                          = var.compute_name
   location                      = var.location
   machine_learning_workspace_id = azurerm_machine_learning_workspace.ml_ws.id
-  vm_size                       = "Standard_B1ms"
+  vm_size                       = "Standard_D1"
   vm_priority                   = "LowPriority"
 
   identity {
