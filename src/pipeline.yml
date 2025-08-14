@@ -29,7 +29,7 @@ jobs:
   predict_job:
     type: command
     component: file:./predict.yml
-      identity:
+    identity:
       type: user_identity
       user_assigned_identities:
         - /subscriptions/__SUB_ID__/resourceGroups/transformer-load-rg/providers/Microsoft.ManagedIdentity/userAssignedIdentities/transformer-load-identity
