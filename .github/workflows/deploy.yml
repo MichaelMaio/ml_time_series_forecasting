@@ -82,8 +82,8 @@ jobs:
         run: terraform apply -auto-approve
         working-directory: ./terraform-ml-deploy
 
-      - name: Wait for role assignment propagation
-        run: sleep 60
+      #- name: Wait for role assignment propagation
+      #  run: sleep 60
 
       - name: Confirm Azure ML workspace
         run: |
@@ -92,6 +92,7 @@ jobs:
           --resource-group ${{ env.RESOURCE_GROUP }}
 
       - name: Validate pipeline YAML
+        shell: bash
         run: |
           VALIDATION_OUTPUT=$(az ml job validate --file src/pipeline.yml \
             --resource-group ${{ env.RESOURCE_GROUP }} \
@@ -99,10 +100,12 @@ jobs:
 
           echo "$VALIDATION_OUTPUT"
 
-          echo "$VALIDATION_OUTPUT" | jq -e '.result == "Failed"' && {
+          if echo "$VALIDATION_OUTPUT" | jq -e '.result == "Failed"' > /dev/null; then
             echo "❌ Pipeline validation failed. Halting workflow."
             exit 1
-          }
+          else
+            echo "✅ Pipeline validation succeeded."
+          fi
 
       - name: Submit Azure ML pipeline job
         id: submit_job
