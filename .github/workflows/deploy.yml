@@ -89,7 +89,30 @@ jobs:
         run: az ml workspace show --name ${{ env.WORKSPACE_NAME }} --resource-group ${{ env.RESOURCE_GROUP }}
 
       - name: Submit Azure ML pipeline job
+        id: submit_job
         run: |
-          az ml job create --file pipeline.yml \
+          JOB_NAME="transformer-load-job-$(date +%s)"
+          echo "JOB_NAME=$JOB_NAME" >> $GITHUB_ENV
+
+          az ml job create --file src/pipeline.yml \
             --resource-group ${{ env.RESOURCE_GROUP }} \
-            --workspace-name ${{ env.WORKSPACE_NAME }}
+            --workspace-name ${{ env.WORKSPACE_NAME }} \
+            --set name=$JOB_NAME \
+            --set experiment_name=transformer-load-exp
+
+      - name: Monitor Azure ML job
+        run: |
+          while true; do
+            STATUS=$(az ml job show --name ${{ env.JOB_NAME }} \
+              --resource-group ${{ env.RESOURCE_GROUP }} \
+              --workspace-name ${{ env.WORKSPACE_NAME }} \
+              --query "status" -o tsv)
+            echo "Job status: $STATUS"
+            if [[ "$STATUS" == "Completed" ]]; then
+              break
+            elif [[ "$STATUS" == "Failed" || "$STATUS" == "Canceled" ]]; then
+              echo "Azure ML job failed or was canceled."
+              exit 1
+            fi
+            sleep 30
+          done

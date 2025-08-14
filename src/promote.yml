@@ -3,10 +3,17 @@ name: promote_model
 display_name: Promote Model
 version: 1
 type: command
-inputs: {}
-outputs: {}
+
+inputs:
+  model_input:
+    type: uri_folder
+outputs:
+  promoted_model:
+    type: uri_folder
+
 environment:
-  image: transformer-load-acr.azurecr.io/transformer-load-image:latest
-code: .
+  image: transformerloadacr.azurecr.io/transformer-load-image:latest
+
+code: ./src
 command: >-
   python promote.py

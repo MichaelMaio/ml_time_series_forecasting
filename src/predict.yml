@@ -1,0 +1,20 @@
+$schema: https://azuremlschemas.azureedge.net/latest/commandComponent.schema.json
+name: predict_model
+display_name: Predict Model
+version: 1
+type: command
+
+inputs:
+  model_input:
+    type: uri_folder
+
+outputs:
+  predictions:
+    type: uri_folder
+
+environment:
+  image: transformerloadacr.azurecr.io/transformer-load-image:latest
+
+code: ./src
+command: >-
+  python predict.py

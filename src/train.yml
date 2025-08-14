@@ -3,10 +3,15 @@ name: train_model
 display_name: Train Model
 version: 1
 type: command
+
 inputs: {}
-outputs: {}
+outputs:
+  model_output:
+    type: uri_folder
+
 environment:
-  image: transformer-load-acr.azurecr.io/transformer-load-image:latest
-code: .
+  image: transformerloadacr.azurecr.io/transformer-load-image:latest
+
+code: ./src
 command: >-
   python train.py
