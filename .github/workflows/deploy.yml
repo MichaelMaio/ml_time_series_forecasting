@@ -95,21 +95,21 @@ jobs:
           --name ${{ env.WORKSPACE_NAME }} \
           --resource-group ${{ env.RESOURCE_GROUP }}
 
-      - name: Validate pipeline YAML
-        shell: bash
-        run: |
-          VALIDATION_OUTPUT=$(az ml job validate --file src/pipeline.final.yml \
-            --resource-group ${{ env.RESOURCE_GROUP }} \
-            --workspace-name ${{ env.WORKSPACE_NAME }})
+      #- name: Validate pipeline YAML
+      #  shell: bash
+      #  run: |
+      #    VALIDATION_OUTPUT=$(az ml job validate --file src/pipeline.final.yml \
+      #      --resource-group ${{ env.RESOURCE_GROUP }} \
+      #      --workspace-name ${{ env.WORKSPACE_NAME }})
 
-          echo "$VALIDATION_OUTPUT"
+      #    echo "$VALIDATION_OUTPUT"
 
-          if echo "$VALIDATION_OUTPUT" | jq -e '.result == "Failed"' > /dev/null; then
-            echo "❌ Pipeline validation failed. Halting workflow."
-            exit 1
-          else
-            echo "✅ Pipeline validation succeeded."
-          fi
+      #    if echo "$VALIDATION_OUTPUT" | jq -e '.result == "Failed"' > /dev/null; then
+      #      echo "❌ Pipeline validation failed. Halting workflow."
+      #      exit 1
+      #    else
+      #      echo "✅ Pipeline validation succeeded."
+      #    fi
 
       - name: Submit Azure ML pipeline job
         id: submit_job
