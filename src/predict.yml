@@ -15,6 +15,6 @@ outputs:
 environment:
   image: transformerloadacr.azurecr.io/transformer-load-image:latest
 
-code: ./src
+code: .
 command: >-
   python predict.py
