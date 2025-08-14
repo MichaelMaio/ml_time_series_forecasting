@@ -4,8 +4,7 @@ description: ML pipeline with training, promotion, and prediction
 compute: azureml:transformer-load-compute
 
 identity:
-  type: managed
-  msi_resource_id: /subscriptions/__SUB_ID__/resourceGroups/transformer-load-rg/providers/Microsoft.ManagedIdentity/userAssignedIdentities/transformer-load-identity
+  type: user_identity
 
 jobs:
 
