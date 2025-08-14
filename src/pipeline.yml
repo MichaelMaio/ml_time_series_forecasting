@@ -14,7 +14,7 @@ jobs:
     type: command
     component: file:./promote.yml
     inputs:
-      model_input: ${{jobs.train_job.outputs.model_output}}
+      model_input: ${{parent.jobs.train_job.outputs.model_output}}
     outputs:
       promoted_model: {type: uri_folder}
 
@@ -22,4 +22,4 @@ jobs:
     type: command
     component: file:./predict.yml
     inputs:
-      model_input: ${{jobs.promote_job.outputs.promoted_model}}
+      model_input: ${{parent.jobs.promote_job.outputs.promoted_model}}
