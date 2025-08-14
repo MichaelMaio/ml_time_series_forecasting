@@ -17,4 +17,4 @@ environment:
 
 code: .
 command: >-
-  python predict.py
+  python -u predict.py

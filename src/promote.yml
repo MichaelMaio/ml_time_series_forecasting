@@ -17,4 +17,4 @@ environment:
 
 code: .
 command: >-
-  python promote.py
+  python -u promote.py
