@@ -3,10 +3,12 @@ type: pipeline
 description: ML pipeline with training, promotion, and prediction
 compute: azureml:transformer-load-compute
 
-identity:
-  type: user_identity
-
 jobs:
+
+  identity:
+    type: managed
+    user_assigned_identities:
+      - /subscriptions/__SUB_ID__/resourceGroups/transformer-load-rg/providers/Microsoft.ManagedIdentity/userAssignedIdentities/transformer-load-identity
 
   train_job:
     type: command
