@@ -19,7 +19,7 @@ is_azure = "AZUREML_EXPERIMENT_ID" in os.environ or "AZUREML_RUN_ID" in os.envir
 
 print("Running in Azure ML:", is_azure)
 
-experiment_name = "prophet_forecasting_pipeline"
+experiment_name = "transformer-load-exp"
 
 # ✅ Set tracking URI for Docker container
 if not is_azure:
@@ -33,8 +33,7 @@ if not is_azure:
     existing = client.get_experiment_by_name(experiment_name)
     if existing is None:
         client.create_experiment(experiment_name)
-
-mlflow.set_experiment(experiment_name)
+    mlflow.set_experiment(experiment_name)
 
 print("Tracking URI:", mlflow.get_tracking_uri())
 
