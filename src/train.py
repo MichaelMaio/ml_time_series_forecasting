@@ -28,11 +28,11 @@ if not is_azure:
 print("MLflow Tracking URI:", mlflow.get_tracking_uri())
 
 # Ensure experiment exists
-client = mlflow.tracking.MlflowClient()
-existing = client.get_experiment_by_name(experiment_name)
-
-if existing is None:
-    client.create_experiment(experiment_name)
+if not is_azure:
+    client = mlflow.tracking.MlflowClient()
+    existing = client.get_experiment_by_name(experiment_name)
+    if existing is None:
+        client.create_experiment(experiment_name)
 
 mlflow.set_experiment(experiment_name)
 
