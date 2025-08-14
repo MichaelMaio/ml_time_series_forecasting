@@ -86,12 +86,16 @@ jobs:
         run: sleep 60
 
       - name: Confirm Azure ML workspace
-        run: az ml workspace show --name ${{ env.WORKSPACE_NAME }} --resource-group ${{ env.RESOURCE_GROUP }}
+        run: |
+          az ml workspace show \
+          --name ${{ env.WORKSPACE_NAME }} \
+          --resource-group ${{ env.RESOURCE_GROUP }}
 
       - name: Validate pipeline YAML
-        run: az ml job validate --file src/pipeline.yml \
-              --resource-group ${{ env.RESOURCE_GROUP }} \
-              --workspace-name ${{ env.WORKSPACE_NAME }}
+        run: |
+          az ml job validate --file src/pipeline.yml \
+            --resource-group ${{ env.RESOURCE_GROUP }} \
+            --workspace-name ${{ env.WORKSPACE_NAME }}
 
       - name: Submit Azure ML pipeline job
         id: submit_job
