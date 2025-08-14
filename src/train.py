@@ -41,7 +41,7 @@ print("Tracking URI:", mlflow.get_tracking_uri())
 # Disable autologging (Prophet isn't natively supported)
 mlflow.autolog(disable=True)
 
-# Download blob from storage if running in Azure or from the data folder if training locally.
+# Download blob from storage if running in Azure or from the inputs folder if training locally.
 if is_azure:
     blob_uri = "https://transformerloadstorage.blob.core.windows.net/training-data/peak_load.csv"
     print(f"📦 Loading data from blob: {blob_uri}")

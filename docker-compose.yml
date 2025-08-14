@@ -8,7 +8,7 @@ services:
       - ./data:/app/data
     environment:
       - MLFLOW_TRACKING_URI=file:/mlflow/mlruns
-    command: python train.py
+    command: python src/train.py
 
   promoter:
     build: .
@@ -16,7 +16,7 @@ services:
       - ./mlruns:/mlflow/mlruns
     environment:
       - MLFLOW_TRACKING_URI=file:/mlflow/mlruns
-    command: python promote.py
+    command: python src/promote.py
 
   batch-predictor:
     build: .
@@ -27,23 +27,23 @@ services:
     environment:
       - MLFLOW_TRACKING_URI=file:/mlflow/mlruns
       - MODEL_PATH=models:/transformer_load_forecast@production
-    command: python predict.py
+    command: python src/predict.py
 
-#   inference-api:
-#     build: .
-#     ports:
-#       - "5001:5000"
-#     volumes:
-#       - ./mlruns:/mlflow/mlruns
-#       - ./logs:/app/logs
-#       - ./data:/app/data
-#     environment:
-#       - MLFLOW_TRACKING_URI=file:/mlflow/mlruns
-#       - MODEL_PATH=models:/transformer_load_forecast@production
-#     command: >
-#       gunicorn inference:app -k uvicorn.workers.UvicornWorker --bind 0.0.0.0:5000
-#     healthcheck:
-#       test: [ "CMD", "curl", "-f", "http://localhost:5000/health" ]
-#       interval: 10s
-#       timeout: 5s
-#       retries: 5
+# inference-api:
+#   build: .
+#   ports:
+#     - "5001:5000"
+#   volumes:
+#     - ./mlruns:/mlflow/mlruns
+#     - ./logs:/app/logs
+#     - ./data:/app/data
+#   environment:
+#     - MLFLOW_TRACKING_URI=file:/mlflow/mlruns
+#     - MODEL_PATH=models:/transformer_load_forecast@production
+#   command: >
+#     gunicorn src/inference:app -k uvicorn.workers.UvicornWorker --bind 0.0.0.0:5000
+#   healthcheck:
+#     test: [ "CMD", "curl", "-f", "http://localhost:5000/health" ]
+#     interval: 10s
+#     timeout: 5s
+#     retries: 5

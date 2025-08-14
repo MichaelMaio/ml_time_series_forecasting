@@ -1,0 +1,5 @@
+.git/
+.github/
+.vscode/
+terraform-ml-deploy/
+*.pptx
