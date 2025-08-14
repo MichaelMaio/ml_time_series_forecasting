@@ -6,8 +6,7 @@ type: command
 
 inputs:
   model_input:
-    type: string
-    path: ${{parent.jobs.train_job.outputs.model_output}}
+    type: uri_folder
 
 outputs:
   promoted_model:
