@@ -48,9 +48,6 @@ jobs:
       - name: Log in to ACR
         run: az acr login --name $ACR_NAME
 
-      - name: Validate pipeline YAML
-        run: az ml job validate --file src/pipeline.yml
-
       - name: Set FULL_IMAGE
         run: echo "FULL_IMAGE=${ACR_NAME}.azurecr.io/${IMAGE_NAME}:${IMAGE_TAG}" >> $GITHUB_ENV
 
@@ -90,6 +87,11 @@ jobs:
 
       - name: Confirm Azure ML workspace
         run: az ml workspace show --name ${{ env.WORKSPACE_NAME }} --resource-group ${{ env.RESOURCE_GROUP }}
+
+      - name: Validate pipeline YAML
+        run: az ml job validate --file src/pipeline.yml \
+              --resource-group ${{ env.RESOURCE_GROUP }} \
+              --workspace-name ${{ env.WORKSPACE_NAME }}
 
       - name: Submit Azure ML pipeline job
         id: submit_job
