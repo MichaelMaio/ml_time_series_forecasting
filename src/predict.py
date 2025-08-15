@@ -17,12 +17,15 @@ print("Running in Azure ML:", is_azure)
 
 # Load model from MLflow
 if is_azure:
+
     run = Run.get_context()
     ws = run.experiment.workspace
-    model = Model(ws, name="transformer_load_forecast", version=None)  # latest or use tags
-    model_path = model.download(exist_ok=True)
 
-    print(f"Using model from path: {model_path}")
+    model_path = os.environ["AZUREML_INPUT_model_input"]
+    print(f"Using model from pipeline input path: {model_path}")
+
+    if not os.path.exists(model_path):
+        raise RuntimeError(f"Model input path not found: {model_path}")
 
     required_files = ["model_features.json", "transformer_load_model_prophet.pkl"]
 
@@ -32,6 +35,10 @@ if is_azure:
             raise FileNotFoundError(f"Expected artifact missing: {fpath}")
 
     model = mlflow.pyfunc.load_model(model_path)
+
+    print("Model metadata:", model.metadata.to_dict())
+    print("Model input schema:", model.metadata.signature.inputs)
+
 else:
     model = mlflow.pyfunc.load_model("models:/transformer_load_forecast@production")
 
@@ -131,3 +138,12 @@ if is_azure:
         upload_to_blob(overload_blob_name)
 
     print("Forecast results uploaded to blob storage.")
+
+    predictions_path = os.environ["AZUREML_OUTPUT_predictions"]
+    df_input.to_csv(os.path.join(predictions_path, "predicted_kwh.csv"), index=False)
+    plt.savefig(os.path.join(predictions_path, "predicted_kwh_trend.png"))
+
+    if not overload.empty:
+        overload.to_csv(os.path.join(predictions_path, "overload_events.csv"), index=False)
+
+    print("Forecast results saved to AzureML output folder.")

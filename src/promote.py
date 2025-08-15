@@ -3,6 +3,8 @@ import mlflow
 from mlflow.tracking import MlflowClient
 import yaml
 import glob
+from azureml.core import Workspace, Model
+import shutil
 
 print("Current working directory:", os.getcwd())
 
@@ -22,37 +24,26 @@ print("Tracking URI:", mlflow.get_tracking_uri())
 print("Promoting model:", model_name)
 
 if is_azure:
+
     print("Using AzureML model registry for promotion.")
-    from azureml.core import Workspace, Model
 
-    ws = Workspace.from_config()
-    models = Model.list(ws, name=model_name)
+    model_input_path = os.environ["AZUREML_INPUT_model_input"]
+    promoted_model_path = os.environ["AZUREML_OUTPUT_promoted_model"]
 
-    if not models:
-        raise Exception(f"No registered models found for '{model_name}' in AzureML.")
+    print(f"Received model input path: {model_input_path}")
+    print(f"Writing promoted model to: {promoted_model_path}")
 
-    print(f"Found model '{model_name}' with {len(models)} registered versions.")
+    if not os.path.exists(model_input_path):
+        raise RuntimeError(f"Model input path not found: {model_input_path}")
 
-    # Sort by creation time descending
-    latest_model = sorted(models, key=lambda m: m.created_time, reverse=True)[0]
+    shutil.copytree(model_input_path, promoted_model_path)
 
-    existing_tags = latest_model.tags or {}
-    existing_tags["stage"] = "production"
-    latest_model.update(tags=existing_tags)
-
-    print(f"Latest registered model version: {latest_model.version}")
-
-    # AzureML doesn't use MLflow stages directly, but you can tag or version-control here
-    print(f"Promoted version {latest_model.version} of '{model_name}' to stage 'production' (AzureML).")
-
-    if latest_model.path and os.path.exists(latest_model.path):
-        print("Model artifacts:")
-        for path in glob.glob(os.path.join(latest_model.path, "*")):
-            print(" -", path)
-    else:
-        print("Model path not available or inaccessible.")
+    print("Model promotion complete. Artifacts:")
+    for path in glob.glob(os.path.join(promoted_model_path, "*")):
+        print(" -", path)
 
 else:
+
     client = MlflowClient()
 
     # Validate model exists
