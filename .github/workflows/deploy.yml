@@ -101,10 +101,10 @@ jobs:
           echo "$VALIDATION_OUTPUT"
 
           if echo "$VALIDATION_OUTPUT" | jq -e '.result == "Failed"' > /dev/null; then
-            echo "❌ Pipeline validation failed. Halting workflow."
+            echo "Pipeline validation failed. Halting workflow."
             exit 1
           else
-            echo "✅ Pipeline validation succeeded."
+            echo "Pipeline validation succeeded."
           fi
 
       - name: Submit Azure ML pipeline job
@@ -133,10 +133,10 @@ jobs:
       #    echo "Actual identity:   $ACTUAL_IDENTITY"
 
       #    if [[ "$ACTUAL_IDENTITY" != *"$EXPECTED_IDENTITY"* ]]; then
-      #      echo "❌ Managed identity not correctly applied to job."
+      #      echo "Managed identity not correctly applied to job."
       #      exit 1
       #    else
-      #      echo "✅ Managed identity verified."
+      #      echo "Managed identity verified."
       #    fi
 
       - name: Monitor Azure ML job
