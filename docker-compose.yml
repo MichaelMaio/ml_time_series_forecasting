@@ -18,7 +18,7 @@ services:
       - MLFLOW_TRACKING_URI=file:/mlflow/mlruns
     command: python src/promote.py
 
-  batch-predictor:
+  predictor:
     build: .
     volumes:
       - ./mlruns:/mlflow/mlruns
