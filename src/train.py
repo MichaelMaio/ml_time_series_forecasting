@@ -12,6 +12,8 @@ from azure.storage.blob import BlobClient
 import tempfile
 from azure.identity import ManagedIdentityCredential
 import shutil
+from azureml.core import Run
+
 
 print("Current working directory:", os.getcwd())
 
@@ -87,7 +89,6 @@ rmse = None
 print("Starting the MLflow run.")
 try:
     if is_azure:
-        from azureml.core import Run
         run = Run.get_context()
         mlflow.set_tracking_uri(None)
         mlflow.start_run(run_id=run.id)
