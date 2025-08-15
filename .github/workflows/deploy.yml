@@ -37,10 +37,6 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v3
 
-      - name: Inject subscription ID into pipeline.yml
-        run: |
-          sed "s/__SUB_ID__/${{ secrets.AZURE_SUBSCRIPTION_ID }}/g" src/pipeline.yml > src/pipeline.final.yml
-
       - name: Azure Login
         uses: azure/login@v1
         with:
@@ -95,21 +91,21 @@ jobs:
           --name ${{ env.WORKSPACE_NAME }} \
           --resource-group ${{ env.RESOURCE_GROUP }}
 
-      #- name: Validate pipeline YAML
-      #  shell: bash
-      #  run: |
-      #    VALIDATION_OUTPUT=$(az ml job validate --file src/pipeline.final.yml \
-      #      --resource-group ${{ env.RESOURCE_GROUP }} \
-      #      --workspace-name ${{ env.WORKSPACE_NAME }})
+      - name: Validate pipeline YAML
+        shell: bash
+        run: |
+          VALIDATION_OUTPUT=$(az ml job validate --file src/pipeline.yml \
+            --resource-group ${{ env.RESOURCE_GROUP }} \
+            --workspace-name ${{ env.WORKSPACE_NAME }})
 
-      #    echo "$VALIDATION_OUTPUT"
+          echo "$VALIDATION_OUTPUT"
 
-      #    if echo "$VALIDATION_OUTPUT" | jq -e '.result == "Failed"' > /dev/null; then
-      #      echo "❌ Pipeline validation failed. Halting workflow."
-      #      exit 1
-      #    else
-      #      echo "✅ Pipeline validation succeeded."
-      #    fi
+          if echo "$VALIDATION_OUTPUT" | jq -e '.result == "Failed"' > /dev/null; then
+            echo "❌ Pipeline validation failed. Halting workflow."
+            exit 1
+          else
+            echo "✅ Pipeline validation succeeded."
+          fi
 
       - name: Submit Azure ML pipeline job
         id: submit_job
@@ -117,11 +113,12 @@ jobs:
           JOB_NAME="transformer-load-job-$(date +%s)"
           echo "JOB_NAME=$JOB_NAME" >> $GITHUB_ENV
 
-          az ml job create --file src/pipeline.final.yml \
+          az ml job create --file src/pipeline.yml \
             --resource-group ${{ env.RESOURCE_GROUP }} \
             --workspace-name ${{ env.WORKSPACE_NAME }} \
             --set name=$JOB_NAME \
-            --set experiment_name=transformer-load-exp
+            --set experiment_name=transformer-load-exp \
+            --set managed_identity_client_id=$ARM_CLIENT_ID
 
       - name: Validate job identity
         run: |

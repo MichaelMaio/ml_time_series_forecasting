@@ -32,18 +32,21 @@ timestamps = pd.date_range(start="2025-01-01", end="2030-01-01", freq="h", inclu
 df_input = pd.DataFrame({"ds": timestamps})
 
 # ProphetWrapper expects a DataFrame with 'ds' column only
+print("Running predictions.")
 forecast = model.predict(df_input)
 
 # Extract predictions
 df_input["predicted_kwh"] = forecast["yhat"]
 
 # Save results
+print("Saving predictions.")
 df_input.to_csv("predicted_kwh.csv", index=False)
 
 os.makedirs("outputs", exist_ok=True)
 df_input.to_csv("outputs/predicted_kwh.csv", index=False)
 
 # Check for transformer overload
+print("Checking for transformer overload.")
 transformer_limit = 85.0
 overload = df_input[df_input["predicted_kwh"] > transformer_limit]
 
@@ -53,6 +56,7 @@ else:
     print("✅ No overload predicted between 2025 and 2029.")
 
 # Plot forecast
+print("Plotting predictions.")
 plt.figure(figsize=(14, 6))
 plt.plot(df_input["ds"], df_input["predicted_kwh"], label="Predicted kWh", color="steelblue")
 plt.xlabel("Timestamp")
@@ -63,6 +67,8 @@ plt.tight_layout()
 plt.savefig("outputs/predicted_kwh_trend.png")
 
 if is_azure:
+    print("Uploading blobs.")
+
     # Define blob paths
     storage_account_url = "https://transformerloadstorage.blob.core.windows.net"
     container_name = "predictions"

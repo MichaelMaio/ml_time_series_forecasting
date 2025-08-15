@@ -3,17 +3,18 @@ type: pipeline
 description: ML pipeline with training, promotion, and prediction
 compute: azureml:transformer-load-compute
 
+parameters:
+  managed_identity_client_id: ""
+
 jobs:
 
   train_job:
     type: command
     component: file:./train.yml
+    environment_variables:
+      MANAGED_IDENTITY_CLIENT_ID: ${{parent.parameters.managed_identity_client_id}}
     outputs:
       model_output: {type: uri_folder}
-    identity:
-      type: managed
-      user_assigned_identities:
-        - /subscriptions/__SUB_ID__/resourceGroups/transformer-load-rg/providers/Microsoft.ManagedIdentity/userAssignedIdentities/transformer-load-identity
 
   promote_job:
     type: command
@@ -22,17 +23,11 @@ jobs:
       model_input: ${{parent.jobs.train_job.outputs.model_output}}
     outputs:
       promoted_model: {type: uri_folder}
-    identity:
-      type: managed
-      user_assigned_identities:
-        - /subscriptions/__SUB_ID__/resourceGroups/transformer-load-rg/providers/Microsoft.ManagedIdentity/userAssignedIdentities/transformer-load-identity
 
   predict_job:
     type: command
     component: file:./predict.yml
+    environment_variables:
+      MANAGED_IDENTITY_CLIENT_ID: ${{parent.parameters.managed_identity_client_id}}
     inputs:
       model_input: ${{parent.jobs.promote_job.outputs.promoted_model}}
-    identity:
-      type: managed
-      user_assigned_identities:
-        - /subscriptions/__SUB_ID__/resourceGroups/transformer-load-rg/providers/Microsoft.ManagedIdentity/userAssignedIdentities/transformer-load-identity

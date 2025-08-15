@@ -8,9 +8,9 @@ from sklearn.metrics import root_mean_squared_error
 import os
 from prophet import Prophet
 from prophet_wrapper import ProphetWrapper  # ✅ Custom wrapper
-from azure.identity import DefaultAzureCredential
 from azure.storage.blob import BlobClient
 import tempfile
+from azure.identity import ManagedIdentityCredential
 
 print("📂 Current working directory:", os.getcwd())
 
@@ -43,19 +43,28 @@ mlflow.autolog(disable=True)
 # Download blob from storage if running in Azure or from the inputs folder if training locally.
 if is_azure:
     blob_uri = "https://transformerloadstorage.blob.core.windows.net/training-data/peak_load.csv"
-    print(f"📦 Loading data from blob: {blob_uri}")
-    credential = DefaultAzureCredential()    
+    print(f"📦 Downloading training data from blob: {blob_uri}")
+
+    # Use the injected client ID of the managed identity
+    client_id = os.environ.get("MANAGED_IDENTITY_CLIENT_ID")
+    if not client_id:
+        raise RuntimeError("MANAGED_IDENTITY_CLIENT_ID environment variable not set.")
+
+    credential = ManagedIdentityCredential(client_id=client_id)
     blob_client = BlobClient.from_blob_url(blob_uri, credential=credential)
+
     with tempfile.NamedTemporaryFile(delete=False, suffix=".csv") as tmp:
         blob_client.download_blob().readinto(tmp)
         data_path = tmp.name
+
 else:
-    print("📁 Loading data from local path")
+    print("📁 Loading training data from local path")
     data_path = "data/peak_load.csv"
 
 df = pd.read_csv(data_path, parse_dates=["timestamp"])
 
 # Feature engineering
+print("Engineering the features.")
 df["hour"] = df["hour"].astype(int)
 df["is_weekend"] = df["is_weekend"].astype(int)
 df = pd.get_dummies(df, columns=["season", "day_of_week"], drop_first=True)
@@ -73,6 +82,7 @@ test_df = df_prophet.iloc[split_2:]
 # Start MLflow run
 with mlflow.start_run(run_name="prophet_load_forecast"):
     # Train model
+    print("Training the model.")
     model = Prophet(
         daily_seasonality=True,
         weekly_seasonality=True,
@@ -82,26 +92,31 @@ with mlflow.start_run(run_name="prophet_load_forecast"):
     model.fit(train_df)
 
     # Forecast on test set
+    print("Testing the model.")
     future = test_df[["ds"]].copy()
     forecast = model.predict(future)
 
     # Evaluate
+    print("Evaluating the model.")
     y_true = test_df["y"].values
     y_pred = forecast["yhat"].values
     rmse = root_mean_squared_error(y_true, y_pred)
     mlflow.log_metric("rmse", rmse)
 
     # Save model locally inside container
+    print("Dumping the model.")
     model_path = "transformer_load_model_prophet.pkl"
     with open(model_path, "wb") as f:
         pickle.dump(model, f)
 
     # Save feature list
+    print("Dumping the feature list.")
     feature_path = "model_features.json"
     with open(feature_path, "w") as f:
         json.dump(["ds"], f)
 
     # Log artifacts
+    print("Logging artifacts.")
     mlflow.log_artifact(model_path)
     mlflow.log_artifact(feature_path)
 
@@ -115,6 +130,7 @@ with mlflow.start_run(run_name="prophet_load_forecast"):
     signature = infer_signature(future_df, model.predict(future_df)[["yhat"]])
 
     # ✅ Log and register the model using the wrapper
+    print("Log and register the model.")
     mlflow.pyfunc.log_model(
         artifact_path="model",
         python_model=ProphetWrapper(),
