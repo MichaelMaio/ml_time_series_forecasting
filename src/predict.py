@@ -6,8 +6,9 @@ import pandas as pd
 from azure.identity import DefaultAzureCredential
 from azure.storage.blob import BlobClient
 import os
+from azureml.core import Workspace, Model, Run
 
-print("📂 Current working directory:", os.getcwd())
+print("Current working directory:", os.getcwd())
 
 # Detect environment
 is_azure = "AZUREML_EXPERIMENT_ID" in os.environ or "AZUREML_RUN_ID" in os.environ
@@ -15,12 +16,38 @@ is_azure = "AZUREML_EXPERIMENT_ID" in os.environ or "AZUREML_RUN_ID" in os.envir
 print("Running in Azure ML:", is_azure)
 
 # Load model from MLflow
-model = mlflow.pyfunc.load_model("models:/transformer_load_forecast@production")
+if is_azure:
+    run = Run.get_context()
+    ws = run.experiment.workspace
+    model = Model(ws, name="transformer_load_forecast", version=None)  # latest or use tags
+    model_path = model.download(exist_ok=True)
+
+    print(f"Using model from path: {model_path}")
+
+    required_files = ["model_features.json", "transformer_load_model_prophet.pkl"]
+
+    for fname in required_files:
+        fpath = os.path.join(model_path, fname)
+        if not os.path.exists(fpath):
+            raise FileNotFoundError(f"Expected artifact missing: {fpath}")
+
+    model = mlflow.pyfunc.load_model(model_path)
+else:
+    model = mlflow.pyfunc.load_model("models:/transformer_load_forecast@production")
 
 # Load feature list from artifact
-client = MlflowClient()
-model_version = client.get_model_version_by_alias("transformer_load_forecast", "production")
-feature_path = mlflow.artifacts.download_artifacts(run_id=model_version.run_id, artifact_path="model_features.json")
+if is_azure:
+    feature_path = os.path.join(model_path, "model_features.json")
+else:
+    client = MlflowClient()
+    model_version = client.get_model_version_by_alias("transformer_load_forecast", "production")
+
+    print(f"Using model version: {model_version.version}, run ID: {model_version.run_id}")
+
+    feature_path = mlflow.artifacts.download_artifacts(run_id=model_version.run_id, artifact_path="model_features.json")
+
+    if not os.path.exists(feature_path):
+        raise FileNotFoundError(f"Expected artifact missing: {feature_path}")
 
 with open(feature_path, "r") as f:
     feature_cols = json.load(f)
@@ -40,8 +67,6 @@ df_input["predicted_kwh"] = forecast["yhat"]
 
 # Save results
 print("Saving predictions.")
-df_input.to_csv("predicted_kwh.csv", index=False)
-
 os.makedirs("outputs", exist_ok=True)
 df_input.to_csv("outputs/predicted_kwh.csv", index=False)
 
@@ -51,9 +76,9 @@ transformer_limit = 85.0
 overload = df_input[df_input["predicted_kwh"] > transformer_limit]
 
 if not overload.empty:
-    print(f"⚠️ Transformer overload predicted on: {overload.iloc[0]['ds']}")
+    print(f"Transformer overload predicted on: {overload.iloc[0]['ds']}")
 else:
-    print("✅ No overload predicted between 2025 and 2029.")
+    print("No overload predicted between 2025 and 2029.")
 
 # Plot forecast
 print("Plotting predictions.")
@@ -76,6 +101,8 @@ if is_azure:
     plot_blob_name = "predicted_kwh_trend.png"
     overload_blob_name = "overload_events.csv"
 
+    print(f"Uploading to container '{container_name}' in account '{storage_account_url}'")
+
     # Authenticate
     credential = DefaultAzureCredential()
 
@@ -92,9 +119,9 @@ if is_azure:
         try:
             with open(local_path, "rb") as f:
                 blob.upload_blob(f, overwrite=True)
-                print(f"📤 Uploaded {blob_name} to {blob.url}.")
+                print(f"Uploaded {blob_name} to {blob.url}.")
         except Exception as e:
-            print(f"❌ Failed to upload {blob_name} to {blob.url}: {e}")
+            print(f"Failed to upload {blob_name} to {blob.url}: {e}")
 
     upload_to_blob(csv_blob_name)
     upload_to_blob(plot_blob_name)
@@ -103,4 +130,4 @@ if is_azure:
         overload.to_csv(f"outputs/{overload_blob_name}", index=False)
         upload_to_blob(overload_blob_name)
 
-    print("✅ Forecast results uploaded to blob storage.")
+    print("Forecast results uploaded to blob storage.")
