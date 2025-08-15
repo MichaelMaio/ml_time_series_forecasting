@@ -12,8 +12,7 @@ from azure.storage.blob import BlobClient
 import tempfile
 from azure.identity import ManagedIdentityCredential
 import shutil
-from azureml.core import Run
-
+from azureml.core import Run, Model
 
 print("Current working directory:", os.getcwd())
 
@@ -45,6 +44,7 @@ mlflow.autolog(disable=True)
 
 # Download blob from storage if running in Azure or from the inputs folder if training locally.
 if is_azure:
+    
     blob_uri = "https://transformerloadstorage.blob.core.windows.net/training-data/peak_load.csv"
     print(f"Downloading training data from blob: {blob_uri}")
 
@@ -157,7 +157,6 @@ if is_azure:
 
     # Explicit AzureML registration
     print("Registering model in AzureML registry.")
-    from azureml.core import Run, Model
 
     ws = run.experiment.workspace
 
@@ -166,7 +165,13 @@ if is_azure:
     shutil.copy(feature_path, "model/model_features.json")
 
     # Upload the model directory.
-    model_output_path = os.environ["AZUREML_OUTPUT_model_output"]
+    print("Available AZUREML env vars:")
+    
+    for k, v in os.environ.items():
+        if "AZUREML" in k:
+            print(f"{k} = {v}")
+
+    model_output_path = run.output_datasets["model_output"].as_mount()
     run.upload_folder(name=model_output_path, path="model")
 
     print(f"Uploading model from: {os.path.abspath('model')}")

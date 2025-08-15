@@ -3,7 +3,7 @@ import mlflow
 from mlflow.tracking import MlflowClient
 import yaml
 import glob
-from azureml.core import Workspace, Model
+from azureml.core import Workspace, Model, Run
 import shutil
 
 print("Current working directory:", os.getcwd())
@@ -27,8 +27,15 @@ if is_azure:
 
     print("Using AzureML model registry for promotion.")
 
-    model_input_path = os.environ["AZUREML_INPUT_model_input"]
-    promoted_model_path = os.environ["AZUREML_OUTPUT_promoted_model"]
+    print("Available AZUREML env vars:")
+    
+    for k, v in os.environ.items():
+        if "AZUREML" in k:
+            print(f"{k} = {v}")
+            
+    run = Run.get_context()
+    model_input_path = run.input_datasets["model_input"].as_mount()
+    promoted_model_path = run.output_datasets["promoted_model"].as_mount()
 
     print(f"Received model input path: {model_input_path}")
     print(f"Writing promoted model to: {promoted_model_path}")

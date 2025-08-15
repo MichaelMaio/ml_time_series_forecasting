@@ -21,20 +21,26 @@ if is_azure:
     run = Run.get_context()
     ws = run.experiment.workspace
 
-    model_path = os.environ["AZUREML_INPUT_model_input"]
-    print(f"Using model from pipeline input path: {model_path}")
+    print("Available AZUREML env vars:")
+    
+    for k, v in os.environ.items():
+        if "AZUREML" in k:
+            print(f"{k} = {v}")
 
-    if not os.path.exists(model_path):
-        raise RuntimeError(f"Model input path not found: {model_path}")
+    model_input_path = run.input_datasets["model_input"].as_mount()
+    print(f"Using model from pipeline input path: {model_input_path}")
+
+    if not os.path.exists(model_input_path):
+        raise RuntimeError(f"Model input path not found: {model_input_path}")
 
     required_files = ["model_features.json", "transformer_load_model_prophet.pkl"]
 
     for fname in required_files:
-        fpath = os.path.join(model_path, fname)
+        fpath = os.path.join(model_input_path, fname)
         if not os.path.exists(fpath):
             raise FileNotFoundError(f"Expected artifact missing: {fpath}")
 
-    model = mlflow.pyfunc.load_model(model_path)
+    model = mlflow.pyfunc.load_model(model_input_path)
 
     print("Model metadata:", model.metadata.to_dict())
     print("Model input schema:", model.metadata.signature.inputs)
@@ -139,7 +145,8 @@ if is_azure:
 
     print("Forecast results uploaded to blob storage.")
 
-    predictions_path = os.environ["AZUREML_OUTPUT_predictions"]
+    predictions_path = run.output_datasets["predictions"].as_mount()
+  
     df_input.to_csv(os.path.join(predictions_path, "predicted_kwh.csv"), index=False)
     plt.savefig(os.path.join(predictions_path, "predicted_kwh_trend.png"))
 
