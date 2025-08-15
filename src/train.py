@@ -7,12 +7,13 @@ import pickle
 from sklearn.metrics import root_mean_squared_error
 import os
 from prophet import Prophet
-from prophet_wrapper import ProphetWrapper  # ✅ Custom wrapper
+from prophet_wrapper import ProphetWrapper
 from azure.storage.blob import BlobClient
 import tempfile
 from azure.identity import ManagedIdentityCredential
+import shutil
 
-print("📂 Current working directory:", os.getcwd())
+print("Current working directory:", os.getcwd())
 
 # Detect environment
 is_azure = "AZUREML_EXPERIMENT_ID" in os.environ or "AZUREML_RUN_ID" in os.environ
@@ -21,7 +22,7 @@ print("Running in Azure ML:", is_azure)
 
 experiment_name = "transformer-load-exp"
 
-# ✅ Set tracking URI for Docker container
+# Set tracking URI for Docker container
 if not is_azure:
     mlflow.set_tracking_uri(os.getenv("MLFLOW_TRACKING_URI", "file:/mlflow/mlruns"))
 
@@ -43,7 +44,7 @@ mlflow.autolog(disable=True)
 # Download blob from storage if running in Azure or from the inputs folder if training locally.
 if is_azure:
     blob_uri = "https://transformerloadstorage.blob.core.windows.net/training-data/peak_load.csv"
-    print(f"📦 Downloading training data from blob: {blob_uri}")
+    print(f"Downloading training data from blob: {blob_uri}")
 
     # Use the injected client ID of the managed identity
     client_id = os.environ.get("MANAGED_IDENTITY_CLIENT_ID")
@@ -58,9 +59,10 @@ if is_azure:
         data_path = tmp.name
 
 else:
-    print("📁 Loading training data from local path")
+    print("Loading training data from local path")
     data_path = "data/peak_load.csv"
 
+print(f"data path is {data_path}")
 df = pd.read_csv(data_path, parse_dates=["timestamp"])
 
 # Feature engineering
@@ -129,14 +131,49 @@ with mlflow.start_run(run_name="prophet_load_forecast"):
     future_df = train_df[["ds"]].copy()
     signature = infer_signature(future_df, model.predict(future_df)[["yhat"]])
 
-    # ✅ Log and register the model using the wrapper
+    # Log and register the model using the wrapper
     print("Log and register the model.")
-    mlflow.pyfunc.log_model(
-        artifact_path="model",
-        python_model=ProphetWrapper(),
-        artifacts={"model": model_path},
-        registered_model_name="transformer_load_forecast",
-        signature=signature
-    )
+    if is_azure:
+        mlflow.pyfunc.log_model(
+            artifact_path="model",
+            python_model=ProphetWrapper(),
+            artifacts={"model": model_path},
+            signature=signature
+        )
 
-    print(f"✅ Prophet model trained and logged with RMSE: {rmse:.2f} kWh")
+        # Explicit AzureML registration
+        print("Registering model in AzureML registry.")
+        from azureml.core import Run, Model
+
+        run = Run.get_context()
+        ws = run.experiment.workspace
+
+        os.makedirs("model", exist_ok=True)
+        shutil.copy(model_path, "model/transformer_load_model_prophet.pkl")
+        shutil.copy(feature_path, "model/model_features.json")
+
+        # Upload the model directory to outputs
+        run.upload_folder(name="model", path="model")
+
+        print(f"Uploading model from: {os.path.abspath('model')}")
+
+        registered_model = Model.register(
+            workspace=ws,
+            model_path="outputs/model",  # path inside run context
+            model_name="transformer_load_forecast",
+            tags={"model_type": "Prophet", "use_case": "Energy Load Forecasting"},
+            description="Prophet model for energy load forecasting"
+        )
+
+        print(f"Registered model '{registered_model.name}' version {registered_model.version} in AzureML.")
+
+    else:
+        mlflow.pyfunc.log_model(
+            artifact_path="model",
+            python_model=ProphetWrapper(),
+            artifacts={"model": model_path},
+            registered_model_name="transformer_load_forecast",
+            signature=signature
+        )
+
+    print(f"Prophet model trained and logged with RMSE: {rmse:.2f} kWh")

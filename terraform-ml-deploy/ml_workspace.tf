@@ -102,7 +102,7 @@ resource "azurerm_machine_learning_workspace" "ml_ws" {
   ]
 }
 
-# Assign AzureML Compute Operator access to the ML workspace
+# Assign AzureML Compute Operator access to the ML workspace identity
 resource "azurerm_role_assignment" "ml_compute_operator" {
   name                 = "77B92631-C0D9-4B13-B92A-F6FF4A8055F2"
   principal_id         = data.azurerm_user_assigned_identity.ml_identity.principal_id
@@ -111,7 +111,7 @@ resource "azurerm_role_assignment" "ml_compute_operator" {
   depends_on           = [azurerm_machine_learning_workspace.ml_ws]
 }
 
-# Assign AzureML Data Scientist access to the ML workspace
+# Assign AzureML Data Scientist access to the ML workspace identity
 resource "azurerm_role_assignment" "ml_data_scientist" {
   name                 = "FF58279F-C7C8-4861-BE5C-BBC1B89C7137"
   principal_id         = data.azurerm_user_assigned_identity.ml_identity.principal_id
@@ -120,11 +120,20 @@ resource "azurerm_role_assignment" "ml_data_scientist" {
   depends_on           = [azurerm_machine_learning_workspace.ml_ws]
 }
 
-# Assign Azure AI Administrator access to the ML workspace
+# Assign Azure AI Administrator access to the ML workspace identity
 resource "azurerm_role_assignment" "ml_ai_administrator" {
   name                 = "13212DA6-A919-440C-BCE9-1DB274F953CB"
   principal_id         = data.azurerm_user_assigned_identity.ml_identity.principal_id
   role_definition_name = "Azure AI Administrator"
+  scope                = azurerm_machine_learning_workspace.ml_ws.id
+  depends_on           = [azurerm_machine_learning_workspace.ml_ws]
+}
+
+# Assign Contributor access to the ML workspace identity
+resource "azurerm_role_assignment" "ml_contributor" {
+  name                 = "5607746F-FD11-410B-85FC-D64A73B825D7"
+  principal_id         = data.azurerm_user_assigned_identity.ml_identity.principal_id
+  role_definition_name = "Contributor"
   scope                = azurerm_machine_learning_workspace.ml_ws.id
   depends_on           = [azurerm_machine_learning_workspace.ml_ws]
 }

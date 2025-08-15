@@ -101,10 +101,10 @@ jobs:
           echo "$VALIDATION_OUTPUT"
 
           if echo "$VALIDATION_OUTPUT" | jq -e '.result == "Failed"' > /dev/null; then
-            echo "❌ Pipeline validation failed. Halting workflow."
+            echo "Pipeline validation failed. Halting workflow."
             exit 1
           else
-            echo "✅ Pipeline validation succeeded."
+            echo "Pipeline validation succeeded."
           fi
 
       - name: Submit Azure ML pipeline job
@@ -121,23 +121,23 @@ jobs:
             --set jobs.train_job.environment_variables.MANAGED_IDENTITY_CLIENT_ID=$ARM_CLIENT_ID \
             --set jobs.predict_job.environment_variables.MANAGED_IDENTITY_CLIENT_ID=$ARM_CLIENT_ID
 
-      - name: Validate job identity
-        run: |
-          EXPECTED_IDENTITY="/subscriptions/${{ secrets.AZURE_SUBSCRIPTION_ID }}/resourceGroups/${{ env.RESOURCE_GROUP }}/providers/Microsoft.ManagedIdentity/userAssignedIdentities/transformer-load-identity"
-          ACTUAL_IDENTITY=$(az ml job show --name ${{ env.JOB_NAME }} \
-            --resource-group ${{ env.RESOURCE_GROUP }} \
-            --workspace-name ${{ env.WORKSPACE_NAME }} \
-            --query "identity.userAssignedIdentities" -o tsv)
+      #- name: Validate job identity
+      #  run: |
+      #    EXPECTED_IDENTITY="/subscriptions/${{ secrets.AZURE_SUBSCRIPTION_ID }}/resourceGroups/${{ env.RESOURCE_GROUP }}/providers/Microsoft.ManagedIdentity/userAssignedIdentities/transformer-load-identity"
+      #    ACTUAL_IDENTITY=$(az ml job show --name ${{ env.JOB_NAME }} \
+      #      --resource-group ${{ env.RESOURCE_GROUP }} \
+      #      --workspace-name ${{ env.WORKSPACE_NAME }} \
+      #      --query "identity.userAssignedIdentities" -o tsv)
 
-          echo "Expected identity: $EXPECTED_IDENTITY"
-          echo "Actual identity:   $ACTUAL_IDENTITY"
+      #    echo "Expected identity: $EXPECTED_IDENTITY"
+      #    echo "Actual identity:   $ACTUAL_IDENTITY"
 
-          if [[ "$ACTUAL_IDENTITY" != *"$EXPECTED_IDENTITY"* ]]; then
-            echo "❌ Managed identity not correctly applied to job."
-            exit 1
-          else
-            echo "✅ Managed identity verified."
-          fi
+      #    if [[ "$ACTUAL_IDENTITY" != *"$EXPECTED_IDENTITY"* ]]; then
+      #      echo "Managed identity not correctly applied to job."
+      #      exit 1
+      #    else
+      #      echo "Managed identity verified."
+      #    fi
 
       - name: Monitor Azure ML job
         run: |

@@ -2,8 +2,9 @@ import os
 import mlflow
 from mlflow.tracking import MlflowClient
 import yaml
+import glob
 
-print("📂 Current working directory:", os.getcwd())
+print("Current working directory:", os.getcwd())
 
 # Detect environment
 is_azure = "AZUREML_EXPERIMENT_ID" in os.environ or "AZUREML_RUN_ID" in os.environ
@@ -20,33 +21,47 @@ if not is_azure:
 print("Tracking URI:", mlflow.get_tracking_uri())
 print("Promoting model:", model_name)
 
-client = MlflowClient()
-
-# Validate model exists
-try:
-    client.get_registered_model(model_name)
-except Exception as e:
-    raise Exception(f"Model '{model_name}' not found in registry.") from e
-
 if is_azure:
-    # ✅ Azure: use stage-based promotion
-    unpromoted_versions = client.get_latest_versions(model_name, stages=["None"])
-    if not unpromoted_versions:
-        raise Exception(f"No unpromoted versions found for model '{model_name}'.")
+    print("Using AzureML model registry for promotion.")
+    from azureml.core import Workspace, Model
 
-    latest_version = unpromoted_versions[0].version
+    ws = Workspace.from_config()
+    models = Model.list(ws, name=model_name)
 
-    client.transition_model_version_stage(
-        name=model_name,
-        version=latest_version,
-        stage="Production",
-        archive_existing_versions=True
-    )
+    if not models:
+        raise Exception(f"No registered models found for '{model_name}' in AzureML.")
 
-    print(f"✅ Promoted version {latest_version} of '{model_name}' to stage 'Production' (Azure).")
+    print(f"Found model '{model_name}' with {len(models)} registered versions.")
+
+    # Sort by creation time descending
+    latest_model = sorted(models, key=lambda m: m.created_time, reverse=True)[0]
+
+    existing_tags = latest_model.tags or {}
+    existing_tags["stage"] = "production"
+    latest_model.update(tags=existing_tags)
+
+    print(f"Latest registered model version: {latest_model.version}")
+
+    # AzureML doesn't use MLflow stages directly, but you can tag or version-control here
+    print(f"Promoted version {latest_model.version} of '{model_name}' to stage 'production' (AzureML).")
+
+    if latest_model.path and os.path.exists(latest_model.path):
+        print("Model artifacts:")
+        for path in glob.glob(os.path.join(latest_model.path, "*")):
+            print(" -", path)
+    else:
+        print("Model path not available or inaccessible.")
 
 else:
-    # ✅ Local: use alias-based promotion
+    client = MlflowClient()
+
+    # Validate model exists
+    try:
+        client.get_registered_model(model_name)
+    except Exception as e:
+        raise Exception(f"Model '{model_name}' not found in registry.") from e
+
+    # Local: use alias-based promotion
     versions = client.search_model_versions(f"name='{model_name}'")
 
     # Filter unaliased versions
@@ -63,7 +78,7 @@ else:
 
     latest_version_obj = sorted(unaliased, key=lambda v: v.creation_timestamp, reverse=True)[0]
 
-    # ✅ Validate registry snapshot path using meta.yaml
+    # Validate registry snapshot path using meta.yaml
     version = latest_version_obj.version
     tracking_root = mlflow.get_tracking_uri().replace("file:", "")
     meta_path = os.path.join(tracking_root, "models", model_name, f"version-{version}", "meta.yaml")
@@ -82,7 +97,7 @@ else:
 
     registry_path = os.path.normpath(storage_uri.replace("file:", ""))
 
-    print(f"🔍 Registry snapshot path: {registry_path}")
+    print(f"Registry snapshot path: {registry_path}")
 
     if not os.path.exists(registry_path):
         raise Exception(f"Registry snapshot path does not exist: {registry_path}")
@@ -93,4 +108,4 @@ else:
         version=latest_version_obj.version
     )
 
-    print(f"✅ Promoted version {latest_version_obj.version} of '{model_name}' to alias '{alias_name}' (local).")
+    print(f"Promoted version {latest_version_obj.version} of '{model_name}' to alias '{alias_name}' (local).")
