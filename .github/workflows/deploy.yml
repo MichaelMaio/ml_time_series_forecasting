@@ -118,7 +118,8 @@ jobs:
             --workspace-name ${{ env.WORKSPACE_NAME }} \
             --set name=$JOB_NAME \
             --set experiment_name=transformer-load-exp \
-            --set managed_identity_client_id=$ARM_CLIENT_ID
+            --set jobs.train_job.environment_variables.MANAGED_IDENTITY_CLIENT_ID=$ARM_CLIENT_ID \
+            --set jobs.predict_job.environment_variables.MANAGED_IDENTITY_CLIENT_ID=$ARM_CLIENT_ID
 
       - name: Validate job identity
         run: |
