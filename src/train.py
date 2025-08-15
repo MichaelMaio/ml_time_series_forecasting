@@ -165,14 +165,14 @@ if is_azure:
     shutil.copy(model_path, "model/transformer_load_model_prophet.pkl")
     shutil.copy(feature_path, "model/model_features.json")
 
-    # Upload the model directory to outputs
+    # Upload the model directory.
     run.upload_folder(name="model", path="model")
 
     print(f"Uploading model from: {os.path.abspath('model')}")
 
     registered_model = Model.register(
         workspace=ws,
-        model_path="outputs/model",  # path inside run context
+        model_path="model",  # path inside run context
         model_name="transformer_load_forecast",
         tags={"model_type": "Prophet", "use_case": "Energy Load Forecasting"},
         description="Prophet model for energy load forecasting"
