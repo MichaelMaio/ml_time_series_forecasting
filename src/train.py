@@ -81,8 +81,19 @@ train_df = df_prophet.iloc[:split_1]
 val_df = df_prophet.iloc[split_1:split_2]
 test_df = df_prophet.iloc[split_2:]
 
+rmse = None
+
 # Start MLflow run
-with mlflow.start_run(run_name="prophet_load_forecast"):
+print("Starting the MLflow run.")
+try:
+    if is_azure:
+        from azureml.core import Run
+        run = Run.get_context()
+        mlflow.set_tracking_uri(None)
+        mlflow.start_run(run_id=run.id)
+    else:
+        mlflow.start_run(run_name="prophet_load_forecast")
+
     # Train model
     print("Training the model.")
     model = Prophet(
@@ -145,7 +156,6 @@ with mlflow.start_run(run_name="prophet_load_forecast"):
         print("Registering model in AzureML registry.")
         from azureml.core import Run, Model
 
-        run = Run.get_context()
         ws = run.experiment.workspace
 
         os.makedirs("model", exist_ok=True)
@@ -176,4 +186,7 @@ with mlflow.start_run(run_name="prophet_load_forecast"):
             signature=signature
         )
 
-    print(f"Prophet model trained and logged with RMSE: {rmse:.2f} kWh")
+finally:
+    mlflow.end_run()
+
+print(f"Prophet model trained and logged with RMSE: {rmse:.2f} kWh")
