@@ -24,3 +24,5 @@ jobs:
     component: file:./predict.yml
     inputs:
       model_input: ${{parent.jobs.promote_job.outputs.promoted_model}}
+    outputs:
+      predictions: {type: uri_folder}

@@ -166,7 +166,8 @@ if is_azure:
     shutil.copy(feature_path, "model/model_features.json")
 
     # Upload the model directory.
-    run.upload_folder(name="model", path="model")
+    model_output_path = os.environ["AZUREML_OUTPUT_model_output"]
+    run.upload_folder(name=model_output_path, path="model")
 
     print(f"Uploading model from: {os.path.abspath('model')}")
 
