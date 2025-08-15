@@ -87,107 +87,109 @@ rmse = None
 
 # Start MLflow run
 print("Starting the MLflow run.")
-try:
-    if is_azure:
-        run = Run.get_context()
-        mlflow.set_tracking_uri(None)
-        mlflow.start_run(run_id=run.id)
-    else:
-        mlflow.start_run(run_name="prophet_load_forecast")
 
-    # Train model
-    print("Training the model.")
-    model = Prophet(
-        daily_seasonality=True,
-        weekly_seasonality=True,
-        yearly_seasonality=True,
-        seasonality_mode="additive"
+if is_azure:
+    run = Run.get_context()
+else:
+    mlflow.start_run(run_name="prophet_load_forecast")
+
+# Train model
+print("Training the model.")
+
+model = Prophet(
+    daily_seasonality=True,
+    weekly_seasonality=True,
+    yearly_seasonality=True,
+    seasonality_mode="additive"
+)
+
+model.fit(train_df)
+
+# Forecast on test set
+print("Testing the model.")
+future = test_df[["ds"]].copy()
+forecast = model.predict(future)
+
+# Evaluate
+print("Evaluating the model.")
+y_true = test_df["y"].values
+y_pred = forecast["yhat"].values
+rmse = root_mean_squared_error(y_true, y_pred)
+mlflow.log_metric("rmse", rmse)
+
+# Save model locally inside container
+print("Dumping the model.")
+model_path = "transformer_load_model_prophet.pkl"
+with open(model_path, "wb") as f:
+    pickle.dump(model, f)
+
+# Save feature list
+print("Dumping the feature list.")
+feature_path = "model_features.json"
+with open(feature_path, "w") as f:
+    json.dump(["ds"], f)
+
+# Log artifacts
+print("Logging artifacts.")
+mlflow.log_artifact(model_path)
+mlflow.log_artifact(feature_path)
+
+# Set MLflow tags
+mlflow.set_tag("model_type", "Prophet")
+mlflow.set_tag("use_case", "Energy Load Forecasting")
+mlflow.set_tag("owner", "Michael Maio")
+
+# Infer model signature using only 'ds' as input
+future_df = train_df[["ds"]].copy()
+signature = infer_signature(future_df, model.predict(future_df)[["yhat"]])
+
+# Log and register the model using the wrapper
+print("Log and register the model.")
+
+if is_azure:
+    
+    mlflow.pyfunc.log_model(
+        artifact_path="model",
+        python_model=ProphetWrapper(),
+        artifacts={"model": model_path},
+        signature=signature
     )
-    model.fit(train_df)
 
-    # Forecast on test set
-    print("Testing the model.")
-    future = test_df[["ds"]].copy()
-    forecast = model.predict(future)
+    # Explicit AzureML registration
+    print("Registering model in AzureML registry.")
+    from azureml.core import Run, Model
 
-    # Evaluate
-    print("Evaluating the model.")
-    y_true = test_df["y"].values
-    y_pred = forecast["yhat"].values
-    rmse = root_mean_squared_error(y_true, y_pred)
-    mlflow.log_metric("rmse", rmse)
+    ws = run.experiment.workspace
 
-    # Save model locally inside container
-    print("Dumping the model.")
-    model_path = "transformer_load_model_prophet.pkl"
-    with open(model_path, "wb") as f:
-        pickle.dump(model, f)
+    os.makedirs("model", exist_ok=True)
+    shutil.copy(model_path, "model/transformer_load_model_prophet.pkl")
+    shutil.copy(feature_path, "model/model_features.json")
 
-    # Save feature list
-    print("Dumping the feature list.")
-    feature_path = "model_features.json"
-    with open(feature_path, "w") as f:
-        json.dump(["ds"], f)
+    # Upload the model directory to outputs
+    run.upload_folder(name="model", path="model")
 
-    # Log artifacts
-    print("Logging artifacts.")
-    mlflow.log_artifact(model_path)
-    mlflow.log_artifact(feature_path)
+    print(f"Uploading model from: {os.path.abspath('model')}")
 
-    # Set MLflow tags
-    mlflow.set_tag("model_type", "Prophet")
-    mlflow.set_tag("use_case", "Energy Load Forecasting")
-    mlflow.set_tag("owner", "Michael Maio")
+    registered_model = Model.register(
+        workspace=ws,
+        model_path="outputs/model",  # path inside run context
+        model_name="transformer_load_forecast",
+        tags={"model_type": "Prophet", "use_case": "Energy Load Forecasting"},
+        description="Prophet model for energy load forecasting"
+    )
 
-    # Infer model signature using only 'ds' as input
-    future_df = train_df[["ds"]].copy()
-    signature = infer_signature(future_df, model.predict(future_df)[["yhat"]])
+    print(f"Registered model '{registered_model.name}' version {registered_model.version} in AzureML.")
 
-    # Log and register the model using the wrapper
-    print("Log and register the model.")
-    if is_azure:
-        mlflow.pyfunc.log_model(
-            artifact_path="model",
-            python_model=ProphetWrapper(),
-            artifacts={"model": model_path},
-            signature=signature
-        )
+else:
+    
+    mlflow.pyfunc.log_model(
+        artifact_path="model",
+        python_model=ProphetWrapper(),
+        artifacts={"model": model_path},
+        registered_model_name="transformer_load_forecast",
+        signature=signature
+    )
 
-        # Explicit AzureML registration
-        print("Registering model in AzureML registry.")
-        from azureml.core import Run, Model
-
-        ws = run.experiment.workspace
-
-        os.makedirs("model", exist_ok=True)
-        shutil.copy(model_path, "model/transformer_load_model_prophet.pkl")
-        shutil.copy(feature_path, "model/model_features.json")
-
-        # Upload the model directory to outputs
-        run.upload_folder(name="model", path="model")
-
-        print(f"Uploading model from: {os.path.abspath('model')}")
-
-        registered_model = Model.register(
-            workspace=ws,
-            model_path="outputs/model",  # path inside run context
-            model_name="transformer_load_forecast",
-            tags={"model_type": "Prophet", "use_case": "Energy Load Forecasting"},
-            description="Prophet model for energy load forecasting"
-        )
-
-        print(f"Registered model '{registered_model.name}' version {registered_model.version} in AzureML.")
-
-    else:
-        mlflow.pyfunc.log_model(
-            artifact_path="model",
-            python_model=ProphetWrapper(),
-            artifacts={"model": model_path},
-            registered_model_name="transformer_load_forecast",
-            signature=signature
-        )
-
-finally:
     mlflow.end_run()
 
 print(f"Prophet model trained and logged with RMSE: {rmse:.2f} kWh")
