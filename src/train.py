@@ -171,7 +171,7 @@ if is_azure:
         if "AZUREML" in k:
             print(f"{k} = {v}")
 
-    model_output_path = run.output_datasets["model_output"].as_mount()
+    model_output_path = run.output_datasets["model_output"]
     run.upload_folder(name=model_output_path, path="model")
 
     print(f"Uploading model from: {os.path.abspath('model')}")

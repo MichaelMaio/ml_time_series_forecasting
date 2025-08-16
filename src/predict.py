@@ -27,7 +27,7 @@ if is_azure:
         if "AZUREML" in k:
             print(f"{k} = {v}")
 
-    model_input_path = run.input_datasets["model_input"].as_mount()
+    model_input_path = run.input_datasets["model_input"]
     print(f"Using model from pipeline input path: {model_input_path}")
 
     if not os.path.exists(model_input_path):
@@ -145,7 +145,7 @@ if is_azure:
 
     print("Forecast results uploaded to blob storage.")
 
-    predictions_path = run.output_datasets["predictions"].as_mount()
+    predictions_path = run.output_datasets["predictions"]
   
     df_input.to_csv(os.path.join(predictions_path, "predicted_kwh.csv"), index=False)
     plt.savefig(os.path.join(predictions_path, "predicted_kwh_trend.png"))
