@@ -21,8 +21,13 @@ if is_azure:
     run = Run.get_context()
     ws = run.experiment.workspace
 
+    print("AzureML Input/Output Paths:")
+    for key, value in os.environ.items():
+        if key.startswith("AZUREML_INPUT_") or key.startswith("AZUREML_OUTPUT_"):
+            print(f"{key} = {value}")
+
     model_input_path = run.input_datasets["model_input"]
-    print(f"Using model from pipeline input path: {model_input_path}")
+    print(f"model_input is {model_input_path}")
 
     if not os.path.exists(model_input_path):
         raise RuntimeError(f"Model input path not found: {model_input_path}")
