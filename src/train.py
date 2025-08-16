@@ -164,9 +164,15 @@ if is_azure:
     shutil.copy(model_path, "model/transformer_load_model_prophet.pkl")
     shutil.copy(feature_path, "model/model_features.json")
 
+    print("AzureML Input/Output Paths:")
+    for key, value in os.environ.items():
+        if key.startswith("AZUREML_INPUT_") or key.startswith("AZUREML_OUTPUT_"):
+            print(f"{key} = {value}")
+
     # Upload the model directory.
     model_output_path = run.output_datasets["model_output"]
-    run.upload_folder(name=model_output_path, path="model")
+    print(f"model_output is {model_output_path}")
+    shutil.copytree("model", model_output_path)
 
     print(f"Uploading model from: {os.path.abspath('model')}")
 

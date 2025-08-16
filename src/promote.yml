@@ -7,10 +7,12 @@ type: command
 inputs:
   model_input:
     type: uri_folder
+    mode: ro_mount
 
 outputs:
   promoted_model:
     type: uri_folder
+    mode: rw_mount
 
 environment:
   image: transformerloadacr.azurecr.io/transformer-load-image:latest

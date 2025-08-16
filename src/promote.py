@@ -27,6 +27,11 @@ if is_azure:
 
     print("Using AzureML model registry for promotion.")
            
+    print("AzureML Input/Output Paths:")
+    for key, value in os.environ.items():
+        if key.startswith("AZUREML_INPUT_") or key.startswith("AZUREML_OUTPUT_"):
+            print(f"{key} = {value}")
+
     run = Run.get_context()
     model_input_path = run.input_datasets["model_input"]
     promoted_model_path = run.output_datasets["promoted_model"]
