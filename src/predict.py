@@ -21,12 +21,6 @@ if is_azure:
     run = Run.get_context()
     ws = run.experiment.workspace
 
-    print("Available AZUREML env vars:")
-    
-    for k, v in os.environ.items():
-        if "AZUREML" in k:
-            print(f"{k} = {v}")
-
     model_input_path = run.input_datasets["model_input"]
     print(f"Using model from pipeline input path: {model_input_path}")
 

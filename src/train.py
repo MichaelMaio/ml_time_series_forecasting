@@ -165,12 +165,6 @@ if is_azure:
     shutil.copy(feature_path, "model/model_features.json")
 
     # Upload the model directory.
-    print("Available AZUREML env vars:")
-    
-    for k, v in os.environ.items():
-        if "AZUREML" in k:
-            print(f"{k} = {v}")
-
     model_output_path = run.output_datasets["model_output"]
     run.upload_folder(name=model_output_path, path="model")
 
