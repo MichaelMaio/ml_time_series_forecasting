@@ -157,13 +157,16 @@ if is_azure:
         signature=signature
     )
 
+    print("Contents of working directory:", os.listdir("."))
+    print("Contents of logged_model folder:", os.listdir("logged_model"))
+
     # Explicit AzureML registration
     print("Registering model in AzureML registry.")
     ws = run.experiment.workspace
 
     registered_model = Model.register(
         workspace=ws,
-        model_path="model",  # path inside run context
+        model_path="logged_model",  # path inside run context
         model_name="transformer_load_forecast",
         tags={"model_type": "Prophet", "use_case": "Energy Load Forecasting"},
         description="Prophet model for energy load forecasting"
