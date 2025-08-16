@@ -6,8 +6,8 @@ type: command
 
 inputs: {}
 outputs:
-  model_output:
-    type: uri_folder
+  logged_model:
+    type: mlflow_model
     mode: rw_mount
 
 environment:

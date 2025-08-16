@@ -148,8 +148,10 @@ print("Log and register the model.")
 
 if is_azure:
     
+    print("Logging the model.")
+
     mlflow.pyfunc.log_model(
-        artifact_path="model",
+        artifact_path="logged_model",
         python_model=ProphetWrapper(),
         artifacts={"model": model_path},
         signature=signature
@@ -157,24 +159,7 @@ if is_azure:
 
     # Explicit AzureML registration
     print("Registering model in AzureML registry.")
-
     ws = run.experiment.workspace
-
-    os.makedirs("model", exist_ok=True)
-    shutil.copy(model_path, "model/transformer_load_model_prophet.pkl")
-    shutil.copy(feature_path, "model/model_features.json")
-
-    print("AzureML Input/Output Paths:")
-    for key, value in os.environ.items():
-        if key.startswith("AZUREML_INPUT_") or key.startswith("AZUREML_OUTPUT_"):
-            print(f"{key} = {value}")
-
-    # Upload the model directory.
-    model_output_path = run.output_datasets["model_output"]
-    print(f"model_output is {model_output_path}")
-    shutil.copytree("model", model_output_path)
-
-    print(f"Uploading model from: {os.path.abspath('model')}")
 
     registered_model = Model.register(
         workspace=ws,
