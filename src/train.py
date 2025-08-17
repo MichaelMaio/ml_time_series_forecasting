@@ -152,13 +152,13 @@ if is_azure:
     print("Logging the model.")
 
     mlflow.pyfunc.log_model(
-        artifact_path="logged_model",
+        artifact_path="trained_model",
         python_model=ProphetWrapper(),
         artifacts={"model": model_path},
         signature=signature
     )
 
-    model_uri = f"runs:/{run.id}/logged_model"
+    model_uri = f"runs:/{run.id}/trained_model"
     print(f"Model URI is: {model_uri}")
 
     local_path = download_artifacts(model_uri)
@@ -166,7 +166,7 @@ if is_azure:
 
     print("Local model contents:", os.listdir(local_path))
 
-    model_output_path = run.output_datasets["logged_model"]
+    model_output_path = run.output_datasets["trained_model"]
     print(f"Model output path is: {model_output_path}")
 
     shutil.copytree(local_path, model_output_path, dirs_exist_ok=True)

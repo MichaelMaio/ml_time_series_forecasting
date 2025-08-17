@@ -5,7 +5,7 @@ version: 1
 type: command
 
 inputs:
-  model_input:
+  trained_model:
     type: mlflow_model
     mode: ro_mount
 

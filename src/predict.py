@@ -19,7 +19,7 @@ if is_azure:
 
     run = Run.get_context()
 
-    model_input_path = run.input_datasets["model_input"]
+    model_input_path = run.input_datasets["promoted_model"]
     print(f"model_input is {model_input_path}")
 
     if not os.path.exists(model_input_path):
