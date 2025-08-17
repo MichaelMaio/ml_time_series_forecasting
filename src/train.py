@@ -13,6 +13,7 @@ import tempfile
 from azure.identity import ManagedIdentityCredential
 import shutil
 from azureml.core import Run, Model
+from mlflow.artifacts import download_artifacts
 
 print("Current working directory:", os.getcwd())
 
@@ -157,13 +158,20 @@ if is_azure:
         signature=signature
     )
 
+    model_uri = f"runs:/{run.id}/logged_model"
+    print(f"Model URI is: {model_uri}")
+
+    from mlflow.artifacts import download_artifacts
+    local_path = download_artifacts(model_uri)
+    print(f"Model local path is: {local_path}")
+
     # Explicit AzureML registration
     print("Registering model in AzureML registry.")
     ws = run.experiment.workspace
 
-    Model.register(
+    registered_model = Model.register(
         workspace=ws,
-        model_path=f"runs:/{run.id}/logged_model",
+        model_path=local_path,
         model_name="transformer_load_forecast",
         tags={"model_type": "Prophet", "use_case": "Energy Load Forecasting"},
         description="Prophet model for energy load forecasting"
