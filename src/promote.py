@@ -28,7 +28,7 @@ if is_azure:
     print("Using AzureML model registry for promotion.")
 
     run = Run.get_context()
-    model_input_path = run.input_datasets["model_input"]
+    model_input_path = run.input_datasets["trained_model"]
     promoted_model_path = run.output_datasets["promoted_model"]
 
     print(f"Received model input path: {model_input_path}")

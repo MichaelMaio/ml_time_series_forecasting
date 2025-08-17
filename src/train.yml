@@ -6,7 +6,7 @@ type: command
 
 inputs: {}
 outputs:
-  logged_model:
+  trained_model:
     type: mlflow_model
     mode: rw_mount
 
