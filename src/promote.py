@@ -37,9 +37,10 @@ if is_azure:
     if not os.path.exists(model_input_path):
         raise RuntimeError(f"Model input path not found: {model_input_path}")
 
-    shutil.copytree(model_input_path, promoted_model_path)
+    shutil.copytree(model_input_path, promoted_model_path, dirs_exist_ok=True)
 
     print("Model promotion complete. Artifacts:")
+    
     for path in glob.glob(os.path.join(promoted_model_path, "*")):
         print(" -", path)
 

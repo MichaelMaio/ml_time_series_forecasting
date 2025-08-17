@@ -154,7 +154,6 @@ if is_azure:
     mlflow.pyfunc.log_model(
         artifact_path="logged_model",
         python_model=ProphetWrapper(),
-        artifacts={"model": model_path},
         signature=signature
     )
 
