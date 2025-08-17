@@ -169,6 +169,8 @@ if is_azure:
 
     shutil.copytree(local_path, model_output_path)
 
+    print("Copied model contents:", os.listdir(model_output_path))
+
     # Explicit AzureML registration
     print("Registering model in AzureML registry.")
     ws = run.experiment.workspace
