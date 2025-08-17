@@ -5,13 +5,13 @@ compute: azureml:transformer-load-compute
 
 jobs:
 
-  train_job:
+  train_transformer_load_model:
     type: command
     component: file:./train.yml
     outputs:
       logged_model: {type: mlflow_model}
 
-  promote_job:
+  promote_transformer_load_model:
     type: command
     component: file:./promote.yml
     inputs:
@@ -19,7 +19,7 @@ jobs:
     outputs:
       promoted_model: {type: mlflow_model}
 
-  predict_job:
+  predict_transformer_overload:
     type: command
     component: file:./predict.yml
     inputs:

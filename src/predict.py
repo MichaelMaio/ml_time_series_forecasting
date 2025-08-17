@@ -79,7 +79,7 @@ if is_azure:
     run.log("overload_events", len(overload))
 
     if not overload.empty:
-        run.log_table("overload_events_timestamps", {"timestamp": overload["ds"].dt.isoformat().tolist()})
+        run.log_table("overload_events_timestamps", {"timestamp": [ts.isoformat() for ts in overload["ds"]]})
 
     print("Uploading transformer load trend")
     run.upload_file(name="predicted_kwh_trend.png", path_or_stream="outputs/predicted_kwh_trend.png")
