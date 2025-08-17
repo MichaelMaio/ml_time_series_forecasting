@@ -161,9 +161,15 @@ if is_azure:
     model_uri = f"runs:/{run.id}/logged_model"
     print(f"Model URI is: {model_uri}")
 
-    from mlflow.artifacts import download_artifacts
     local_path = download_artifacts(model_uri)
     print(f"Model local path is: {local_path}")
+
+    model_output_path = run.output_datasets["logged_model"]
+    print(f"Model output path is: {model_output_path}")
+
+    shutil.copytree(local_path, model_output_path)
+
+    print("Copied model contents:", os.listdir(model_output_path))
 
     # Explicit AzureML registration
     print("Registering model in AzureML registry.")
