@@ -18,7 +18,6 @@ print("Running in Azure ML:", is_azure)
 if is_azure:
 
     run = Run.get_context()
-    ws = run.experiment.workspace
 
     model_input_path = run.input_datasets["model_input"]
     print(f"model_input is {model_input_path}")
@@ -62,9 +61,6 @@ if not overload.empty:
 else:
     print("No overload predicted between 2025 and 2029.")
 
-run.log("max_predicted_kwh", df_input["predicted_kwh"].max())
-run.log("overload_events", len(overload))
-
 # Plot forecast
 print("Plotting predictions.")
 plt.figure(figsize=(14, 6))
@@ -77,6 +73,20 @@ plt.tight_layout()
 plt.savefig("outputs/predicted_kwh_trend.png")
 
 if is_azure:
+
+    print("Logging prediction outputs")
+    run.log("max_predicted_kwh", df_input["predicted_kwh"].max())
+    run.log("overload_events", len(overload))
+
+    if not overload.empty:
+        run.log_table("overload_events_timestamps", {"timestamp": overload["ds"].dt.isoformat().tolist()})
+
+    print("Uploading transformer load trend")
+    run.upload_file(name="predicted_kwh_trend.png", path_or_stream="outputs/predicted_kwh_trend.png")
+
+    print ("Uploading predicted_kwh.csv to metrics")
+    run.upload_file(name="predicted_kwh.csv", path_or_stream="outputs/predicted_kwh.csv")
+
     print("Uploading blobs.")
 
     # Define blob paths
@@ -85,17 +95,24 @@ if is_azure:
     csv_blob_name = "predicted_kwh.csv"
     plot_blob_name = "predicted_kwh_trend.png"
     overload_blob_name = "overload_events.csv"
+    timestamp = pd.Timestamp.now().strftime("%Y%m%d_%H%M%S")
 
     print(f"Uploading to container '{container_name}' in account '{storage_account_url}'")
 
-    # Authenticate
-    credential = DefaultAzureCredential()
+    # Use the injected client ID of the managed identity
+    client_id = os.environ.get("MANAGED_IDENTITY_CLIENT_ID")
 
+    if not client_id:
+        raise RuntimeError("MANAGED_IDENTITY_CLIENT_ID environment variable not set.")
+
+    credential = ManagedIdentityCredential(client_id=client_id)
+ 
     def upload_to_blob(blob_name):
+
         blob = BlobClient(
             account_url=storage_account_url,
             container_name=container_name,
-            blob_name=blob_name,
+            blob_name=f"{blob_name}_{timestamp}",
             credential=credential
         )
 
