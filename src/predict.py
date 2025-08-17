@@ -1,12 +1,11 @@
 import json
 import matplotlib.pyplot as plt
 import mlflow
-from mlflow import MlflowClient
 import pandas as pd
 from azure.identity import DefaultAzureCredential
 from azure.storage.blob import BlobClient
 import os
-from azureml.core import Workspace, Model, Run
+from azureml.core import Run
 
 print("Current working directory:", os.getcwd())
 
@@ -27,13 +26,6 @@ if is_azure:
     if not os.path.exists(model_input_path):
         raise RuntimeError(f"Model input path not found: {model_input_path}")
 
-    required_files = ["model_features.json", "transformer_load_model_prophet.pkl"]
-
-    for fname in required_files:
-        fpath = os.path.join(model_input_path, fname)
-        if not os.path.exists(fpath):
-            raise FileNotFoundError(f"Expected artifact missing: {fpath}")
-
     model = mlflow.pyfunc.load_model(model_input_path)
 
     print("Model metadata:", model.metadata.to_dict())
@@ -41,23 +33,6 @@ if is_azure:
 
 else:
     model = mlflow.pyfunc.load_model("models:/transformer_load_forecast@production")
-
-# Load feature list from artifact
-if is_azure:
-    feature_path = os.path.join(model_path, "model_features.json")
-else:
-    client = MlflowClient()
-    model_version = client.get_model_version_by_alias("transformer_load_forecast", "production")
-
-    print(f"Using model version: {model_version.version}, run ID: {model_version.run_id}")
-
-    feature_path = mlflow.artifacts.download_artifacts(run_id=model_version.run_id, artifact_path="model_features.json")
-
-    if not os.path.exists(feature_path):
-        raise FileNotFoundError(f"Expected artifact missing: {feature_path}")
-
-with open(feature_path, "r") as f:
-    feature_cols = json.load(f)
 
 # Generate hourly timestamps from 2025 to 2030
 timestamps = pd.date_range(start="2025-01-01", end="2030-01-01", freq="h", inclusive="left")
@@ -86,6 +61,9 @@ if not overload.empty:
     print(f"Transformer overload predicted on: {overload.iloc[0]['ds']}")
 else:
     print("No overload predicted between 2025 and 2029.")
+
+run.log("max_predicted_kwh", df_input["predicted_kwh"].max())
+run.log("overload_events", len(overload))
 
 # Plot forecast
 print("Plotting predictions.")
