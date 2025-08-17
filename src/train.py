@@ -164,10 +164,12 @@ if is_azure:
     local_path = download_artifacts(model_uri)
     print(f"Model local path is: {local_path}")
 
+    print("Local model contents:", os.listdir(local_path))
+
     model_output_path = run.output_datasets["logged_model"]
     print(f"Model output path is: {model_output_path}")
 
-    shutil.copytree(local_path, model_output_path)
+    shutil.copytree(local_path, model_output_path, dirs_exist_ok=True)
 
     print("Copied model contents:", os.listdir(model_output_path))
 
