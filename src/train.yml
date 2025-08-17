@@ -1,6 +1,6 @@
 $schema: https://azuremlschemas.azureedge.net/latest/commandComponent.schema.json
-name: train_model
-display_name: Train Model
+name: train_transformer_load_model
+display_name: Train Transformer Load Model
 version: 1
 type: command
 

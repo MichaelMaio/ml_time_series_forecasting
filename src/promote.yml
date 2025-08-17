@@ -1,6 +1,6 @@
 $schema: https://azuremlschemas.azureedge.net/latest/commandComponent.schema.json
-name: promote_model
-display_name: Promote Model
+name: promote_transformer_load_model
+display_name: Promote Transformer Load Model
 version: 1
 type: command
 

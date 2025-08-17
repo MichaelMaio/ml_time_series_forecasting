@@ -1,6 +1,6 @@
 $schema: https://azuremlschemas.azureedge.net/latest/commandComponent.schema.json
-name: predict_model
-display_name: Predict Model
+name: predict_transformer_overload
+display_name: Predict Transformer Overload
 version: 1
 type: command
 
