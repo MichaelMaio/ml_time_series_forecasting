@@ -1,25 +1,25 @@
 $schema: https://azuremlschemas.azureedge.net/latest/pipelineJob.schema.json
 type: pipeline
-description: ML pipeline with training, promotion, and prediction
+description: Azure Machine Learning pipeline with training, promotion, and prediction
 compute: azureml:transformer-load-compute
 
 jobs:
 
-  train_transformer_load_model:
+  train_job:
     type: command
     component: file:./train.yml
     outputs:
       logged_model: {type: mlflow_model}
 
-  promote_transformer_load_model:
+  promote_job:
     type: command
     component: file:./promote.yml
     inputs:
-      model_input: ${{parent.jobs.train_job.outputs.logged_model}}
+      model_input: ${{parent.jobs.train_job.outputs.trained_model}}
     outputs:
       promoted_model: {type: mlflow_model}
 
-  predict_transformer_overload:
+  predict_job:
     type: command
     component: file:./predict.yml
     inputs:
