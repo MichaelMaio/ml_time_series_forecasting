@@ -44,17 +44,17 @@ print("Running predictions.")
 forecast = model.predict(df_input)
 
 # Extract predictions
-df_input["predicted_kwh"] = forecast["yhat"]
+df_input["predicted_kw"] = forecast["yhat"]
 
 # Save results
 print("Saving predictions.")
 os.makedirs("outputs", exist_ok=True)
-df_input.to_csv("outputs/predicted_kwh.csv", index=False)
+df_input.to_csv("outputs/predicted_kw.csv", index=False)
 
 # Check for transformer overload
 print("Checking for transformer overload.")
 transformer_limit = 85.0
-overload = df_input[df_input["predicted_kwh"] > transformer_limit]
+overload = df_input[df_input["predicted_kw"] > transformer_limit]
 
 if not overload.empty:
     print(f"Transformer overload predicted on: {overload.iloc[0]['ds']}")
@@ -64,36 +64,28 @@ else:
 # Plot forecast
 print("Plotting predictions.")
 plt.figure(figsize=(14, 6))
-plt.plot(df_input["ds"], df_input["predicted_kwh"], label="Predicted kWh", color="steelblue")
+plt.plot(df_input["ds"], df_input["predicted_kw"], label="Predicted kw", color="steelblue")
 plt.xlabel("Timestamp")
-plt.ylabel("Predicted kWh")
-plt.title("Hourly Energy Forecast (2025–2030)")
+plt.ylabel("Predicted kw")
+plt.title("Hourly Peak Transformer Load Forecast (2025–2030)")
 plt.grid(True)
 plt.tight_layout()
-plt.savefig("outputs/predicted_kwh_trend.png")
+plt.savefig("outputs/predicted_kw_trend.png")
 
 if is_azure:
 
-    print("Logging prediction outputs")
-    run.log("max_predicted_kwh", df_input["predicted_kwh"].max())
-    run.log("overload_events", len(overload))
-
-    if not overload.empty:
-        run.log_table("overload_events_timestamps", {"timestamp": [ts.isoformat() for ts in overload["ds"]]})
-
-    #print("Uploading transformer load trend")
-    #run.upload_file(name="predicted_kwh_trend.png", path_or_stream="outputs/predicted_kwh_trend.png")
-
-    #print ("Uploading predicted_kwh.csv to metrics")
-    #run.upload_file(name="predicted_kwh.csv", path_or_stream="outputs/predicted_kwh.csv")
+    print("Logging prediction metrics")
+    run.log("max_predicted_kw", df_input["predicted_kw"].max())
+    run.log("overload_event_count", len(overload))
+    run.log("first_overload_timestamp", overload.iloc[0]["ds"].isoformat())
 
     print("Uploading blobs.")
 
     # Define blob paths
     storage_account_url = "https://transformerloadstorage.blob.core.windows.net"
     container_name = "predictions"
-    csv_blob_name = "predicted_kwh.csv"
-    plot_blob_name = "predicted_kwh_trend.png"
+    csv_blob_name = "predicted_kw.csv"
+    plot_blob_name = "predicted_kw_trend.png"
     overload_blob_name = "overload_events.csv"
     timestamp = pd.Timestamp.now().strftime("%Y%m%d_%H%M%S")
 
@@ -136,8 +128,8 @@ if is_azure:
 
     predictions_path = run.output_datasets["predictions"]
   
-    df_input.to_csv(os.path.join(predictions_path, "predicted_kwh.csv"), index=False)
-    plt.savefig(os.path.join(predictions_path, "predicted_kwh_trend.png"))
+    df_input.to_csv(os.path.join(predictions_path, "predicted_kw.csv"), index=False)
+    plt.savefig(os.path.join(predictions_path, "predicted_kw_trend.png"))
 
     if not overload.empty:
         overload.to_csv(os.path.join(predictions_path, "overload_events.csv"), index=False)

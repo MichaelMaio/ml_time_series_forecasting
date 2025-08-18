@@ -1,4 +1,4 @@
-timestamp,hour,day,month,year,day_of_week,is_weekend,season,kwh
+timestamp,hour,day,month,year,day_of_week,is_weekend,season,kw
 2023-01-01 00:00,0,1,1,2023,Sunday,1,Winter,66.9
 2023-01-01 01:00,1,1,1,2023,Sunday,1,Winter,65.11
 2023-01-01 02:00,2,1,1,2023,Sunday,1,Winter,61.85
