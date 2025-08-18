@@ -36,17 +36,21 @@ if is_azure:
     parent_run = run.parent
     training_run = None
 
+    # Find the training run among child runs
     for child in parent_run.get_children():
         if child.get_tags().get("stage") == "training":
             training_run = child
             break
 
+    # If no training run found, log available child runs and abort.
     if training_run is None:
         print("Available child runs and tags:")
         for child in parent_run.get_children():
             print(f" - {child.name}: {child.get_tags()}")
         raise RuntimeError("training run not found.")
 
+    # Log RMSE from training run.
+    print("Found training run:", training_run.name)
     rmse = training_run.get_metrics().get("rmse")
 
     if rmse is None:
@@ -54,6 +58,8 @@ if is_azure:
 
     print(f"Retrieved RMSE from training run: {rmse}")
 
+    # Check RMSE threshold
+    print("Checking RMSE threshold for model promotion.")
     RMSE_THRESHOLD = 5.0
 
     if rmse > RMSE_THRESHOLD:
@@ -61,19 +67,20 @@ if is_azure:
         run.fail("Model rejected due to high RMSE.")
         exit(0)
 
+    # Get model input path and output dataset
     model_input_path = run.input_datasets["trained_model"]
     promoted_model_path = run.output_datasets["promoted_model"]
-
     print(f"Received model input path: {model_input_path}")
     print(f"Writing promoted model to: {promoted_model_path}")
 
     if not os.path.exists(model_input_path):
         raise RuntimeError(f"Model input path not found: {model_input_path}")
 
+    # Copy model to output path
+    print("Copying model to output path.")
     shutil.copytree(model_input_path, promoted_model_path, dirs_exist_ok=True)
 
     print("Model promotion complete. Artifacts:")
-    
     for path in glob.glob(os.path.join(promoted_model_path, "*")):
         print(" -", path)
 
