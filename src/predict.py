@@ -31,6 +31,8 @@ if is_azure:
     if not os.path.exists(model_input_path):
         raise RuntimeError(f"Model input path not found: {model_input_path}")
 
+    # Load model from AzureML input dataset
+    print("Loading model from AzureML input dataset.")
     model = mlflow.pyfunc.load_model(model_input_path)
 
     print("Model metadata:", model.metadata.to_dict())
@@ -42,10 +44,9 @@ else:
 # Generate hourly timestamps from 2025 to 2030
 timestamps = pd.date_range(start="2025-01-01", end="2030-01-01", freq="h", inclusive="left")
 
-# Prepare input DataFrame for Prophet
+# ProphetWrapper expects a DataFrame with 'ds' column only
 df_input = pd.DataFrame({"ds": timestamps})
 
-# ProphetWrapper expects a DataFrame with 'ds' column only
 print("Running predictions.")
 forecast = model.predict(df_input)
 
@@ -80,6 +81,7 @@ plt.savefig("outputs/predicted_kw_trend.png")
 
 if is_azure:
 
+    # Log metrics and tags.
     print("Logging prediction metrics")
     mlflow.log_metric("max_predicted_kw", df_input["predicted_kw"].max())
     mlflow.log_metric("overload_event_count", len(overload))
@@ -89,6 +91,7 @@ if is_azure:
 
     mlflow.set_tag("first_overload_timestamp", formatted_ts)
 
+    # Save predictions to Azure.
     predictions_path = run.output_datasets["predictions"]
   
     df_input.to_csv(os.path.join(predictions_path, "predicted_kw.csv"), index=False)
