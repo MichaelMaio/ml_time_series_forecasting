@@ -75,56 +75,9 @@ plt.savefig("outputs/predicted_kw_trend.png")
 if is_azure:
 
     print("Logging prediction metrics")
-    run.log("max_predicted_kw", df_input["predicted_kw"].max())
-    run.log("overload_event_count", len(overload))
-    run.log("first_overload_timestamp", overload.iloc[0]["ds"].isoformat())
-
-    print("Uploading blobs.")
-
-    # Define blob paths
-    storage_account_url = "https://transformerloadstorage.blob.core.windows.net"
-    container_name = "predictions"
-    csv_blob_name = "predicted_kw.csv"
-    plot_blob_name = "predicted_kw_trend.png"
-    overload_blob_name = "overload_events.csv"
-    timestamp = pd.Timestamp.now().strftime("%Y%m%d_%H%M%S")
-
-    print(f"Uploading to container '{container_name}' in account '{storage_account_url}'")
-
-    # Use the injected client ID of the managed identity
-    client_id = os.environ.get("MANAGED_IDENTITY_CLIENT_ID")
-
-    if not client_id:
-        raise RuntimeError("MANAGED_IDENTITY_CLIENT_ID environment variable not set.")
-
-    credential = ManagedIdentityCredential(client_id=client_id)
- 
-    def upload_to_blob(blob_name):
-
-        blob = BlobClient(
-            account_url=storage_account_url,
-            container_name=container_name,
-            blob_name=f"{blob_name}_{timestamp}",
-            credential=credential
-        )
-
-        local_path = f"outputs/{blob_name}"
-        
-        try:
-            with open(local_path, "rb") as f:
-                blob.upload_blob(f, overwrite=True)
-                print(f"Uploaded {blob_name} to {blob.url}.")
-        except Exception as e:
-            print(f"Failed to upload {blob_name} to {blob.url}: {e}")
-
-    upload_to_blob(csv_blob_name)
-    upload_to_blob(plot_blob_name)
-
-    if not overload.empty:
-        overload.to_csv(f"outputs/{overload_blob_name}", index=False)
-        upload_to_blob(overload_blob_name)
-
-    print("Forecast results uploaded to blob storage.")
+    mlflow.log_metric("max_predicted_kw", df_input["predicted_kw"].max())
+    mlflow.log_metric("overload_event_count", len(overload))
+    mlflow.log_metric("first_overload_timestamp", overload.iloc[0]["ds"].timestamp())
 
     predictions_path = run.output_datasets["predictions"]
   
