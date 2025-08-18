@@ -29,22 +29,25 @@ if is_azure:
     
     run = Run.get_context()
     parent_run = run.parent
+    training_run = None
 
-    train_run = None
     for child in parent_run.get_children():
-        if child.name == "train_job":
-            train_run = child
+        if child.get_tags().get("stage") == "training":
+            training_run = child
             break
 
-    if train_run is None:
-        raise RuntimeError("train_job run not found.")
+    if training_run is None:
+        print("Available child runs and tags:")
+        for child in parent_run.get_children():
+            print(f" - {child.name}: {child.get_tags()}")
+        raise RuntimeError("training run not found.")
 
-    rmse = train_run.get_metrics().get("rmse")
+    rmse = training_run.get_metrics().get("rmse")
 
     if rmse is None:
-        raise RuntimeError("RMSE metric not found in train_job.")
+        raise RuntimeError("RMSE metric not found in training run.")
 
-    print(f"Retrieved RMSE from train_job: {rmse}")
+    print(f"Retrieved RMSE from training run: {rmse}")
 
     RMSE_THRESHOLD = 5.0
 
