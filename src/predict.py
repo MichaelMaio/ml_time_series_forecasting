@@ -2,7 +2,7 @@ import json
 import matplotlib.pyplot as plt
 import mlflow
 import pandas as pd
-from azure.identity import DefaultAzureCredential
+from azure.identity import ManagedIdentityCredential
 from azure.storage.blob import BlobClient
 import os
 from azureml.core import Run
@@ -81,11 +81,11 @@ if is_azure:
     if not overload.empty:
         run.log_table("overload_events_timestamps", {"timestamp": [ts.isoformat() for ts in overload["ds"]]})
 
-    print("Uploading transformer load trend")
-    run.upload_file(name="predicted_kwh_trend.png", path_or_stream="outputs/predicted_kwh_trend.png")
+    #print("Uploading transformer load trend")
+    #run.upload_file(name="predicted_kwh_trend.png", path_or_stream="outputs/predicted_kwh_trend.png")
 
-    print ("Uploading predicted_kwh.csv to metrics")
-    run.upload_file(name="predicted_kwh.csv", path_or_stream="outputs/predicted_kwh.csv")
+    #print ("Uploading predicted_kwh.csv to metrics")
+    #run.upload_file(name="predicted_kwh.csv", path_or_stream="outputs/predicted_kwh.csv")
 
     print("Uploading blobs.")
 
