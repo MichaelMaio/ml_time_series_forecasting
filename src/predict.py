@@ -1,10 +1,16 @@
+# Standard library
+from datetime import datetime
 import json
+import os
+
+# Third-party
 import matplotlib.pyplot as plt
 import mlflow
 import pandas as pd
+
+# Azure SDK
 from azure.identity import ManagedIdentityCredential
 from azure.storage.blob import BlobClient
-import os
 from azureml.core import Run
 
 print("Current working directory:", os.getcwd())
@@ -77,7 +83,11 @@ if is_azure:
     print("Logging prediction metrics")
     mlflow.log_metric("max_predicted_kw", df_input["predicted_kw"].max())
     mlflow.log_metric("overload_event_count", len(overload))
-    mlflow.log_metric("first_overload_timestamp", overload.iloc[0]["ds"].timestamp())
+
+    ts = overload.iloc[0]["ds"]
+    formatted_ts = ts.strftime("%Y-%m-%d %H:%M:%S")
+
+    mlflow.set_tag("first_overload_timestamp", formatted_ts)
 
     predictions_path = run.output_datasets["predictions"]
   
