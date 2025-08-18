@@ -75,7 +75,7 @@ df["is_weekend"] = df["is_weekend"].astype(int)
 df = pd.get_dummies(df, columns=["season", "day_of_week"], drop_first=True)
 
 # Prepare data for Prophet
-df_prophet = df[["timestamp", "kwh"]].rename(columns={"timestamp": "ds", "kwh": "y"})
+df_prophet = df[["timestamp", "kw"]].rename(columns={"timestamp": "ds", "kw": "y"})
 
 # Train/val/test split
 split_1 = int(len(df_prophet) * 0.8)
@@ -121,6 +121,7 @@ mlflow.log_metric("rmse", rmse)
 # Save model locally inside container
 print("Dumping the model.")
 model_path = "transformer_load_model_prophet.pkl"
+
 with open(model_path, "wb") as f:
     pickle.dump(model, f)
 
@@ -173,20 +174,6 @@ if is_azure:
 
     print("Copied model contents:", os.listdir(model_output_path))
 
-    # Explicit AzureML registration
-    print("Registering model in AzureML registry.")
-    ws = run.experiment.workspace
-
-    registered_model = Model.register(
-        workspace=ws,
-        model_path=local_path,
-        model_name="transformer_load_forecast",
-        tags={"model_type": "Prophet", "use_case": "Energy Load Forecasting"},
-        description="Prophet model for energy load forecasting"
-    )
-
-    print(f"Registered model '{registered_model.name}' version {registered_model.version} in AzureML.")
-
 else:
     
     mlflow.pyfunc.log_model(
@@ -199,4 +186,4 @@ else:
 
     mlflow.end_run()
 
-print(f"Prophet model trained and logged with RMSE: {rmse:.2f} kWh")
+print(f"Prophet model trained and logged with RMSE: {rmse:.2f} kw")

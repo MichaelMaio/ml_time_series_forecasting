@@ -26,8 +26,33 @@ print("Promoting model:", model_name)
 if is_azure:
 
     print("Using AzureML model registry for promotion.")
-
+    
     run = Run.get_context()
+    parent_run = run.parent
+
+    train_run = None
+    for child in parent_run.get_children():
+        if child.name == "train_job":
+            train_run = child
+            break
+
+    if train_run is None:
+        raise RuntimeError("train_job run not found.")
+
+    rmse = train_run.get_metrics().get("rmse")
+
+    if rmse is None:
+        raise RuntimeError("RMSE metric not found in train_job.")
+
+    print(f"Retrieved RMSE from train_job: {rmse}")
+
+    RMSE_THRESHOLD = 5.0
+
+    if rmse > RMSE_THRESHOLD:
+        print(f"RMSE {rmse:.2f} exceeds threshold of {RMSE_THRESHOLD:2f}. Skipping registration.")
+        run.fail("Model rejected due to high RMSE.")
+        exit(0)
+
     model_input_path = run.input_datasets["trained_model"]
     promoted_model_path = run.output_datasets["promoted_model"]
 
@@ -43,6 +68,20 @@ if is_azure:
     
     for path in glob.glob(os.path.join(promoted_model_path, "*")):
         print(" -", path)
+
+    # Explicit AzureML registration
+    print("Registering model in AzureML registry.")
+    ws = run.experiment.workspace
+
+    registered_model = Model.register(
+        workspace=ws,
+        model_path=promoted_model_path,
+        model_name="transformer_load_forecast",
+        tags={"model_type": "Prophet", "use_case": "Energy Load Forecasting"},
+        description="Prophet model for energy load forecasting"
+    )
+
+    print(f"Registered model '{registered_model.name}' version {registered_model.version} in AzureML.")
 
 else:
 
