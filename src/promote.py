@@ -1,10 +1,15 @@
+# Standard library
+import glob
 import os
+import shutil
+
+# Third-party
 import mlflow
 from mlflow.tracking import MlflowClient
 import yaml
-import glob
-from azureml.core import Workspace, Model, Run
-import shutil
+
+# Azure SDK
+from azureml.core import Model, Run, Workspace
 
 print("Current working directory:", os.getcwd())
 

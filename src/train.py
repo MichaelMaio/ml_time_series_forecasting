@@ -1,19 +1,26 @@
+# Standard library
 import json
-import mlflow
-from mlflow.models.signature import infer_signature
-import mlflow.pyfunc
-import pandas as pd
-import pickle
-from sklearn.metrics import root_mean_squared_error
 import os
-from prophet import Prophet
-from prophet_wrapper import ProphetWrapper
-from azure.storage.blob import BlobClient
-import tempfile
-from azure.identity import ManagedIdentityCredential
+import pickle
 import shutil
-from azureml.core import Run, Model
+import tempfile
+
+# Third-party
+import mlflow
+import mlflow.pyfunc
 from mlflow.artifacts import download_artifacts
+from mlflow.models.signature import infer_signature
+import pandas as pd
+from prophet import Prophet
+from sklearn.metrics import root_mean_squared_error
+
+# Azure SDK
+from azure.identity import ManagedIdentityCredential
+from azure.storage.blob import BlobClient
+from azureml.core import Run, Model
+
+# Local modules
+from prophet_wrapper import ProphetWrapper
 
 print("Current working directory:", os.getcwd())
 
