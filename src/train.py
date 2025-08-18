@@ -150,6 +150,8 @@ print("Log and register the model.")
 
 if is_azure:
     
+    run.tag("stage", "training")
+    
     print("Logging the model.")
 
     mlflow.pyfunc.log_model(
