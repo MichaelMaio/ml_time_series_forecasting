@@ -1,11 +1,11 @@
-# Standard library
+# Standard library.
 import json
 import os
 import pickle
 import shutil
 import tempfile
 
-# Third-party
+# Third-party.
 import mlflow
 import mlflow.pyfunc
 from mlflow.artifacts import download_artifacts
@@ -14,54 +14,59 @@ import pandas as pd
 from prophet import Prophet
 from sklearn.metrics import root_mean_squared_error
 
-# Azure SDK
+# Azure SDK.
 from azure.identity import ManagedIdentityCredential
 from azure.storage.blob import BlobClient
-from azureml.core import Run, Model
+from azureml.core import Run
 
-# Local modules
+# Local modules.
 from prophet_wrapper import ProphetWrapper
 
+print("\n*** STARTING TRAINING SCRIPT ***")
 print("Current working directory:", os.getcwd())
 
-# Detect environment
+# Detect if we're running in Azure ML.
 is_azure = "AZUREML_EXPERIMENT_ID" in os.environ or "AZUREML_RUN_ID" in os.environ
 
 print("Running in Azure ML:", is_azure)
 
-experiment_name = "transformer-load-exp"
-
-# Set tracking URI for Docker container
+# Set tracking URI for Docker container if doing a local run.
 if not is_azure:
     mlflow.set_tracking_uri(os.getenv("MLFLOW_TRACKING_URI", "file:/mlflow/mlruns"))
 
 print("MLflow Tracking URI:", mlflow.get_tracking_uri())
 
-# Ensure experiment exists
+# Ensure experiment exists.
 if not is_azure:
+
+    experiment_name = "transformer-load-exp"
     client = mlflow.tracking.MlflowClient()
     existing = client.get_experiment_by_name(experiment_name)
+
     if existing is None:
         client.create_experiment(experiment_name)
-    mlflow.set_experiment(experiment_name)
 
-print("Tracking URI:", mlflow.get_tracking_uri())
+    mlflow.set_experiment(experiment_name)
 
 # Disable autologging (Prophet isn't natively supported)
 mlflow.autolog(disable=True)
 
-# Download blob from storage if running in Azure or from the inputs folder if training locally.
 if is_azure:
     
+    # Training data will be downloaded from blob storage.
     blob_uri = "https://transformerloadstorage.blob.core.windows.net/training-data/peak_load.csv"
     print(f"Downloading training data from blob: {blob_uri}")
 
-    # Use the injected client ID of the managed identity
+    # Get the managed identity client ID from environment variable.
     client_id = os.environ.get("MANAGED_IDENTITY_CLIENT_ID")
+
     if not client_id:
         raise RuntimeError("MANAGED_IDENTITY_CLIENT_ID environment variable not set.")
 
+    # Create the managed identity credential..
     credential = ManagedIdentityCredential(client_id=client_id)
+
+    # Create the blob client and download the blob to a temporary file.
     blob_client = BlobClient.from_blob_url(blob_uri, credential=credential)
 
     with tempfile.NamedTemporaryFile(delete=False, suffix=".csv") as tmp:
@@ -69,39 +74,35 @@ if is_azure:
         data_path = tmp.name
 
 else:
-    print("Loading training data from local path")
+    # Training data will be read from local path.
     data_path = "data/peak_load.csv"
 
-print(f"data path is {data_path}")
+# Load the training data.
+print("Loading training data from local path {data_path}")
 df = pd.read_csv(data_path, parse_dates=["timestamp"])
 
-# Feature engineering
-print("Engineering the features.")
-df["hour"] = df["hour"].astype(int)
-df["is_weekend"] = df["is_weekend"].astype(int)
-df = pd.get_dummies(df, columns=["season", "day_of_week"], drop_first=True)
-
-# Prepare data for Prophet
+# Prepare the training data for Prophet.
 df_prophet = df[["timestamp", "kw"]].rename(columns={"timestamp": "ds", "kw": "y"})
 
-# Train/val/test split
+# Split the data into the training, validation, and test sets (80/10/10).
 split_1 = int(len(df_prophet) * 0.8)
 split_2 = int(len(df_prophet) * 0.9)
 train_df = df_prophet.iloc[:split_1]
 val_df = df_prophet.iloc[split_1:split_2]
 test_df = df_prophet.iloc[split_2:]
 
-rmse = None
-
-# Start MLflow run
+# Start the MLflow run.
 print("Starting the MLflow run.")
 
 if is_azure:
+    # In Azure, use the existing Run context.
     run = Run.get_context()
 else:
+    # Suppress MLflow-related git warnings.
+    os.environ["GIT_PYTHON_REFRESH"] = "quiet"
     mlflow.start_run(run_name="prophet_load_forecast")
 
-# Train model
+# Create and train the model.
 print("Training the model.")
 
 model = Prophet(
@@ -113,17 +114,28 @@ model = Prophet(
 
 model.fit(train_df)
 
-# Forecast on test set
-print("Testing the model.")
-future = test_df[["ds"]].copy()
-forecast = model.predict(future)
+# Validate the model.
+print("Validating the model.")
+val_future = val_df[["ds"]].copy()
+val_forecast = model.predict(val_future)
 
-# Evaluate
-print("Evaluating the model.")
-y_true = test_df["y"].values
-y_pred = forecast["yhat"].values
-rmse = root_mean_squared_error(y_true, y_pred)
-mlflow.log_metric("rmse", rmse)
+# Calculate the validation rmse and log it.
+val_rmse = root_mean_squared_error(val_df["y"], val_forecast["yhat"])
+mlflow.log_metric("val_rmse", val_rmse)
+print(f"Validation root-mean-squared-error is {val_rmse:.2f} kw.")
+
+if val_rmse >= 3.0:
+    raise RuntimeError(f"Validation RMSE {val_rmse:.2f} exceeds threshold of 3.0.")
+
+# Test the model.
+print("Testing the model.")
+test_future = test_df[["ds"]].copy()
+test_forecast = model.predict(test_future)
+
+# Calculate the test rmse and log it.
+test_rmse = root_mean_squared_error(test_df["y"], test_forecast["yhat"])
+mlflow.log_metric("test_rmse", test_rmse)
+print(f"Test root-mean-squared-error is {test_rmse:.2f} kw.")
 
 # Save model locally inside container
 print("Dumping the model.")
@@ -135,6 +147,7 @@ with open(model_path, "wb") as f:
 # Save feature list
 print("Dumping the feature list.")
 feature_path = "model_features.json"
+
 with open(feature_path, "w") as f:
     json.dump(["ds"], f)
 
@@ -191,5 +204,3 @@ else:
     )
 
     mlflow.end_run()
-
-print(f"Prophet model trained and logged with RMSE: {rmse:.2f} kw")

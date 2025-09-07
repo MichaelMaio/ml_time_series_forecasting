@@ -1,6 +1,5 @@
 # Standard library
-from datetime import datetime
-import json
+import logging
 import os
 
 # Third-party
@@ -9,11 +8,11 @@ import mlflow
 import pandas as pd
 
 # Azure SDK
-from azure.identity import ManagedIdentityCredential
-from azure.storage.blob import BlobClient
 from azureml.core import Run
 
+print("\n*** STARTING PREDICTION SCRIPT ***")
 print("Current working directory:", os.getcwd())
+logging.getLogger("prophet.plot").disabled = True
 
 # Detect environment
 is_azure = "AZUREML_EXPERIMENT_ID" in os.environ or "AZUREML_RUN_ID" in os.environ
@@ -44,8 +43,10 @@ else:
 # Generate hourly timestamps from 2025 to 2030
 timestamps = pd.date_range(start="2025-01-01", end="2030-01-01", freq="h", inclusive="left")
 
-# ProphetWrapper expects a DataFrame with 'ds' column only
-df_input = pd.DataFrame({"ds": timestamps})
+# Initialize input DataFrame.
+df_input = pd.DataFrame({
+    "ds": timestamps
+})
 
 print("Running predictions.")
 forecast = model.predict(df_input)

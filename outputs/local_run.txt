@@ -1,0 +1,38 @@
+*** STARTING TRAINING SCRIPT ***
+Current working directory: /app
+Running in Azure ML: False
+MLflow Tracking URI: file:/mlflow/mlruns
+Loading training data from local path {data_path}
+Starting the MLflow run.
+Training the model.
+22:24:09 - cmdstanpy - INFO - Chain [1] start processing
+22:24:12 - cmdstanpy - INFO - Chain [1] done processing
+Validating the model.
+Validation root-mean-squared-error is 2.00 kw.
+Testing the model.
+Test root-mean-squared-error is 2.09 kw.
+Dumping the model.
+Dumping the feature list.
+Logging artifacts.
+Log and register the model.
+Downloading artifacts: 100%|███████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 1/1 [00:00<00:00, 1353.00it/s]
+Registered model 'transformer_load_forecast' already exists. Creating a new version of this model...
+Created version '18' of model 'transformer_load_forecast'.
+
+*** STARTING PROMOTION SCRIPT ***
+Current working directory: /app
+Running in Azure ML: False
+Tracking URI: file:/mlflow/mlruns
+Promoting model: transformer_load_forecast
+Checking meta.yaml path: /mlflow/mlruns/models/transformer_load_forecast/version-18/meta.yaml
+Registry snapshot path: /mlflow/mlruns/469705964327373313/25b70422c4c541fc8061ae6c9b711819/artifacts/model
+Promoted version 18 of 'transformer_load_forecast' to alias 'production' (local).
+
+*** STARTING PREDICTION SCRIPT ***
+Current working directory: /app
+Running in Azure ML: False
+Running predictions.
+Saving predictions.
+Checking for transformer overload.
+Transformer overload predicted on: 2027-11-26 23:00:00
+Plotting predictions.

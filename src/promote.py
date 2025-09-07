@@ -1,5 +1,4 @@
 # Standard library
-import glob
 import os
 import shutil
 
@@ -9,8 +8,9 @@ from mlflow.tracking import MlflowClient
 import yaml
 
 # Azure SDK
-from azureml.core import Model, Run, Workspace
+from azureml.core import Run
 
+print("\n*** STARTING PROMOTION SCRIPT ***")
 print("Current working directory:", os.getcwd())
 
 # Detect environment
