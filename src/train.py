@@ -27,10 +27,9 @@ print("Current working directory:", os.getcwd())
 
 # Detect if we're running in Azure ML.
 is_azure = "AZUREML_EXPERIMENT_ID" in os.environ or "AZUREML_RUN_ID" in os.environ
-
 print("Running in Azure ML:", is_azure)
 
-# Set tracking URI for Docker container if doing a local run.
+# Set tracking URI if doing a local run.
 if not is_azure:
     mlflow.set_tracking_uri(os.getenv("MLFLOW_TRACKING_URI", "file:/mlflow/mlruns"))
 
@@ -78,7 +77,7 @@ else:
     data_path = "data/peak_load.csv"
 
 # Load the training data.
-print("Loading training data from local path {data_path}")
+print(f"Loading training data from local path {data_path}")
 df = pd.read_csv(data_path, parse_dates=["timestamp"])
 
 # Prepare the training data for Prophet.
@@ -122,10 +121,12 @@ val_forecast = model.predict(val_future)
 # Calculate the validation rmse and log it.
 val_rmse = root_mean_squared_error(val_df["y"], val_forecast["yhat"])
 mlflow.log_metric("val_rmse", val_rmse)
-print(f"Validation root-mean-squared-error is {val_rmse:.2f} kw.")
+print(f"Validation RMSE is {val_rmse:.2f} kw.")
 
-if val_rmse >= 3.0:
-    raise RuntimeError(f"Validation RMSE {val_rmse:.2f} exceeds threshold of 3.0.")
+RMSE_THRESHOLD = 3.0
+
+if val_rmse >= RMSE_THRESHOLD:
+    raise RuntimeError(f"Validation RMSE {val_rmse:.2f} exceeds threshold of {RMSE_THRESHOLD}.")
 
 # Test the model.
 print("Testing the model.")
@@ -133,9 +134,9 @@ test_future = test_df[["ds"]].copy()
 test_forecast = model.predict(test_future)
 
 # Calculate the test rmse and log it.
-test_rmse = root_mean_squared_error(test_df["y"], test_forecast["yhat"])
-mlflow.log_metric("test_rmse", test_rmse)
-print(f"Test root-mean-squared-error is {test_rmse:.2f} kw.")
+rmse = root_mean_squared_error(test_df["y"], test_forecast["yhat"])
+mlflow.log_metric("rmse", rmse)
+print(f"Test RMSE is {rmse:.2f} kw.")
 
 # Dump the model locally.
 print("Dumping the model.")

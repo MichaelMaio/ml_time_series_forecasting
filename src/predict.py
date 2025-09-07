@@ -12,11 +12,12 @@ from azureml.core import Run
 
 print("\n*** STARTING PREDICTION SCRIPT ***")
 print("Current working directory:", os.getcwd())
+
+# Disable Prophet logging to suppress errors about plotting in headless mode.
 logging.getLogger("prophet.plot").disabled = True
 
 # Detect environment
 is_azure = "AZUREML_EXPERIMENT_ID" in os.environ or "AZUREML_RUN_ID" in os.environ
-
 print("Running in Azure ML:", is_azure)
 
 # Load model from MLflow
