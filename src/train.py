@@ -137,42 +137,42 @@ test_rmse = root_mean_squared_error(test_df["y"], test_forecast["yhat"])
 mlflow.log_metric("test_rmse", test_rmse)
 print(f"Test root-mean-squared-error is {test_rmse:.2f} kw.")
 
-# Save model locally inside container
+# Dump the model locally.
 print("Dumping the model.")
 model_path = "transformer_load_model_prophet.pkl"
 
 with open(model_path, "wb") as f:
     pickle.dump(model, f)
 
-# Save feature list
+# Dump the feature list locally.
 print("Dumping the feature list.")
 feature_path = "model_features.json"
 
 with open(feature_path, "w") as f:
     json.dump(["ds"], f)
 
-# Log artifacts
-print("Logging artifacts.")
+# Log the model and feature list as artifacts.
+print("Logging model artifacts.")
 mlflow.log_artifact(model_path)
 mlflow.log_artifact(feature_path)
 
-# Set MLflow tags
+# Set tags for the model.
+print("Setting model tags.")
 mlflow.set_tag("model_type", "Prophet")
-mlflow.set_tag("use_case", "Energy Load Forecasting")
+mlflow.set_tag("use_case", "Electrical Load Forecasting")
 mlflow.set_tag("owner", "Michael Maio")
 
-# Infer model signature using only 'ds' as input
+# Infer the model signature from the inputs and outputs.
 future_df = train_df[["ds"]].copy()
 signature = infer_signature(future_df, model.predict(future_df)[["yhat"]])
 
-# Log and register the model using the wrapper
-print("Log and register the model.")
+# Log the model.
+print("Logging the model.")
 
 if is_azure:
     
     run.tag("stage", "training")
-    
-    print("Logging the model.")
+
     mlflow.pyfunc.log_model(
         artifact_path="trained_model",
         python_model=ProphetWrapper(),
@@ -180,16 +180,21 @@ if is_azure:
         signature=signature
     )
 
+    # Get the model uri so we can download it to the output dataset.
     model_uri = f"runs:/{run.id}/trained_model"
     print(f"Model URI is: {model_uri}")
 
+    # Download the model artifacts to a local path.
     local_path = download_artifacts(model_uri)
     print(f"Model local path is: {local_path}")
     print("Local model contents:", os.listdir(local_path))
 
+    # Get the model output path from the output dataset.
     model_output_path = run.output_datasets["trained_model"]
     print(f"Model output path is: {model_output_path}")
 
+    # Copy the downloaded model to the output path.
+    # This allows it to be picked up by the next step in the pipeline (promotion).
     shutil.copytree(local_path, model_output_path, dirs_exist_ok=True)
     print("Copied model contents:", os.listdir(model_output_path))
 
