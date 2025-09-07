@@ -80,24 +80,6 @@ if is_azure:
     print("Copying model to output path.")
     shutil.copytree(model_input_path, promoted_model_path, dirs_exist_ok=True)
 
-    print("Model promotion complete. Artifacts:")
-    for path in glob.glob(os.path.join(promoted_model_path, "*")):
-        print(" -", path)
-
-    # Explicit AzureML registration
-    print("Registering model in AzureML registry.")
-    ws = run.experiment.workspace
-
-    registered_model = Model.register(
-        workspace=ws,
-        model_path=promoted_model_path,
-        model_name="transformer_load_forecast",
-        tags={"model_type": "Prophet", "use_case": "Energy Load Forecasting"},
-        description="Prophet model for energy load forecasting"
-    )
-
-    print(f"Registered model '{registered_model.name}' version {registered_model.version} in AzureML.")
-
 else:
 
     client = MlflowClient()
