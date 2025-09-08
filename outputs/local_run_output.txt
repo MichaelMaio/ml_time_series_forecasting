@@ -1,0 +1,41 @@
+*** STARTING TRAINING SCRIPT ***
+Current working directory: /app
+Running in Azure ML: False
+MLflow Tracking URI: file:/mlflow/mlruns
+Loading training data from local path data/peak_load.csv
+Starting the MLflow run.
+Training the model.
+00:06:14 - cmdstanpy - INFO - Chain [1] start processing
+00:06:17 - cmdstanpy - INFO - Chain [1] done processing
+Validating the model.
+Validation RMSE is 2.00 kw.
+Testing the model.
+Test RMSE is 2.09 kw.
+Dumping the model.
+Dumping the feature list.
+Logging model artifacts.
+Setting model tags.
+Logging the model.
+Downloading artifacts: 100%|████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 1/1 [00:00<00:00, 754.78it/s]
+Registered model 'transformer_load_forecast' already exists. Creating a new version of this model...
+Created version '23' of model 'transformer_load_forecast'.
+
+*** STARTING PROMOTION SCRIPT ***
+Current working directory: /app
+Running in Azure ML: False
+Tracking URI: file:/mlflow/mlruns
+Searching for all versions of model transformer_load_forecast.
+Found 22 unaliased versions of model 'transformer_load_forecast'.
+Latest unaliased version is: 23
+Promoted version 23 of model 'transformer_load_forecast' to alias 'production'.
+
+*** STARTING PREDICTION SCRIPT ***
+Current working directory: /app
+Running in Azure ML: False
+Loading model from MLflow Model Registry: models:/transformer_load_forecast@production
+Generating hourly timestamps from 2025-01-01 to 2030-01-01.
+Running predictions against 43824 hourly timestamps.
+Writing predctions to outputs/predicted_kw.csv.
+Checking for transformer overload.
+Transformer overload predicted on: 2027-11-26 23:00:00
+Plotting predictions.
