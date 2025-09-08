@@ -2,6 +2,8 @@
 Engineer: Michael Maio<br>
 Last updated: 9/7/2025
 
+<img width="1919" height="1079" alt="image" src="https://github.com/user-attachments/assets/4bee51ce-fede-4bf9-bee8-fede51b51d54" />
+
 ## Overview ##
 This repo contains a working machine learning pipeline that addresses the following hypothetical scenario that a software company might need to deal with.<br>
 
@@ -20,10 +22,6 @@ This machine learning pipeline uses:
  
 #1 through #3 allow for the entire pipeline to be run locally for quick feedback on changes before deploying to the cloud. No Azure required.
 #6 allows for other cloud providers, such as AWS or GCP, to be swapped in as needed.
-
-**Caveat**:
-I only spent a few days on this so, though it is a working pipeline and ran multiple jobs successfully (screenshots below), it is of course bare bones and just a proof-of-concept. There are a bunch of features in AzureML and MLflow that I didn’t make use of due to lack of time. Additionally, it’s not the most interesting data science problem since it has only one feature feeding into the predictions. But it serves the larger purpose of illustrating how to setup machine learning pipeline infrastructure.
- If I had a few weeks or months, I could create a rich, production quality pipeline. But this pipeline is at least production-*__ready__* in terms of the way the system is designed and the technologies used. And since it addresses a hypothetical problem for the purposes of experimentation rather than an actual problem that a business is trying to solve, I’ll be spending limited time on it.
 
 ## AzureML In Action ##
 This is the starting point: a high-level view of the experiment in Azure AI’s Machine Learning Studio.
@@ -74,4 +72,5 @@ You can also drill into the “predictions” output and see the files that the 
 3.	A chart of the predicted loads.
 <br><br> 
 <img width="975" height="648" alt="image" src="https://github.com/user-attachments/assets/123197c7-c266-4925-88e5-44d574411f0c" />
+
 
