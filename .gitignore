@@ -20,9 +20,6 @@ Thumbs.db
 # Artifacts
 model_features.json
 model_features.pkl
-predicted_kw_trend.png
-predicted_kw.csv
 transformer_load_model.json
 transformer_load_model.pkl
 transformer_load_model_prophet.pkl
-transformer_load_model.txt
